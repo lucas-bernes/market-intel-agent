@@ -5,15 +5,15 @@ from .schema import ModelComparison
 def extract_model_comparison(raw_text: str) -> ModelComparison:
     client = anthropic.Anthropic()
 
-    # Get ModelComparison's "shape" as a JSON Schema, so the API knows
-    # exactly which fields and types it needs to fill in.
+    # Pega a "forma" do ModelComparison como JSON Schema, pra API saber
+    # exatamente quais campos e tipos ela precisa preencher.
     schema = ModelComparison.model_json_schema()
 
     response = client.messages.create(
         model="claude-sonnet-5",
         max_tokens=1024,
-        # This isn't a real action (nothing gets executed) — it's just a
-        # "form" we force the model to fill instead of replying with free text.
+        # Isso não é uma ação real (não executa nada) — é só um "formulário"
+        # que forçamos o modelo a preencher em vez de responder com texto livre.
         tools=[
             {
                 "name": "extract_model_comparison",
@@ -21,8 +21,8 @@ def extract_model_comparison(raw_text: str) -> ModelComparison:
                 "input_schema": schema,
             }
         ],
-        # Forced (not "auto"): without this, the model could reply with
-        # plain text instead of filling in the form.
+        # Forçado (não "auto"): sem isso, o modelo poderia responder só com
+        # texto solto em vez de preencher o formulário.
         tool_choice={"type": "tool", "name": "extract_model_comparison"},
         messages=[
             {
@@ -32,13 +32,13 @@ def extract_model_comparison(raw_text: str) -> ModelComparison:
         ],
     )
 
-    # response.content is a list of blocks (text + tool_use can come mixed
-    # together in other scenarios) — so we filter by type instead of just
-    # grabbing response.content[0].
+    # response.content é uma lista de blocos (podem vir texto + tool_use
+    # misturados em outros cenários) — por isso filtramos pelo tipo certo
+    # em vez de simplesmente pegar response.content[0].
     tool_block = next(b for b in response.content if b.type == "tool_use")
-    dados = tool_block.input  # already a plain Python dict, no manual parsing
+    dados = tool_block.input  # já vem como dict Python, sem parsing manual
 
-    # **dados "unpacks" the dict into named arguments: equivalent to writing
-    # ModelComparison(model_name=..., price_per_second_usd=..., ...) by hand.
-    # This is where Pydantic's type validation actually happens.
+    # **dados "abre" o dict em argumentos nomeados: equivale a escrever
+    # ModelComparison(model_name=..., price_per_second_usd=..., ...) na mão.
+    # É aqui que a validação de tipos do Pydantic acontece de fato.
     return ModelComparison(**dados)
