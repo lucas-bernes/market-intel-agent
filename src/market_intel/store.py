@@ -14,7 +14,9 @@ def save_model_comparison(comparison: ModelComparison) -> None:
     models_dir.mkdir(parents=True, exist_ok=True)
 
     # Transforma "Kling 3.0" em "kling-3.0", pra usar como nome de arquivo.
-    safe_name = comparison.model_name.lower().replace(" ", "-")
+    # Também troca "/" por "-", porque nomes reais (ex: "fal-ai/flux/dev")
+    # têm barra, que o Path interpretaria como separador de pasta.
+    safe_name = comparison.model_name.lower().replace(" ", "-").replace("/", "-")
     file_path = models_dir / f"{safe_name}.json"
 
     # Converte o objeto em texto JSON e escreve no arquivo.
