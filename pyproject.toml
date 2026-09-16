@@ -13,6 +13,8 @@ dependencies = [
     "firecrawl-py",
     "fastapi",
     "uvicorn",
+    "sqlalchemy",
+    "psycopg2-binary",
 ]
 
 [tool.setuptools.packages.find]

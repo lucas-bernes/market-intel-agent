@@ -1,14 +1,28 @@
-from pathlib import Path
+import os
 from typing import Optional
 
+from dotenv import load_dotenv
 from sqlalchemy import Boolean, Float, Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-DB_PATH = PROJECT_ROOT / "data" / "market_intel.db"
+load_dotenv()
+
+# Valores padrão batem com o docker-compose.yml, pra funcionar sem
+# configuração extra em dev local — em produção, essas variáveis viriam
+# de configuração de ambiente real (ex: painel do Hostinger).
+DB_USER = os.environ.get("POSTGRES_USER", "market_intel")
+DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "market_intel")
+DB_HOST = os.environ.get("POSTGRES_HOST", "127.0.0.1")
+# 5433, não a porta padrão do Postgres: essa máquina já tem um Postgres
+# nativo do Windows ocupando a 5432, então mapeamos nosso container pra
+# uma porta diferente no host pra não colidir com ele.
+DB_PORT = os.environ.get("POSTGRES_PORT", "5433")
+DB_NAME = os.environ.get("POSTGRES_DB", "market_intel")
+
+DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # echo=False evita o SQLAlchemy imprimir cada SQL executado no terminal.
-engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
+engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 
 
