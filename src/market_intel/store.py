@@ -1,6 +1,22 @@
 from pathlib import Path
 from .schema import ModelComparison
 
+# Campos de fato: tratamos a primeira fonte que preencheu como confiável e
+# não deixamos uma fonte seguinte (ex: um blog de review) sobrescrever com
+# um número diferente — evita que preço/specs "flutuem" dependendo da ordem
+# em que as páginas foram processadas.
+PROTECTED_FIELDS = {
+    "price_per_second_usd",
+    "max_reference_images",
+    "prompt_window_tokens",
+    "multi_shot_support",
+}
+
+# Campos de texto livre: aqui o oposto faz sentido — várias fontes podem
+# trazer ângulos diferentes sobre qualidade, então acumulamos em vez de
+# descartar a informação antiga.
+APPENDABLE_FIELDS = {"quality_notes", "notes"}
+
 
 def save_model_comparison(comparison: ModelComparison, model_key: str) -> None:
     # Path(__file__) = caminho deste próprio arquivo (store.py).
@@ -21,16 +37,23 @@ def save_model_comparison(comparison: ModelComparison, model_key: str) -> None:
     file_path = models_dir / f"{safe_key}.json"
 
     # Se já existe um registro salvo pra esse modelo (de uma extração
-    # anterior, possivelmente de outra fonte), mescla em vez de sobrescrever:
-    # cada campo novo que veio preenchido (não-None) substitui o antigo;
-    # campos que a fonte atual não mencionou (vieram None) mantêm o valor
-    # que já estava salvo, em vez de apagá-lo.
+    # anterior, possivelmente de outra fonte), mescla em vez de sobrescrever,
+    # com uma regra diferente por tipo de campo:
     if file_path.exists():
         existing = ModelComparison.model_validate_json(file_path.read_text(encoding="utf-8"))
         merged = existing.model_dump()
         for field, value in comparison.model_dump().items():
-            if value is not None:
-                merged[field] = value
+            if value is None:
+                continue  # fonte atual não mencionou isso, mantém o que já tinha
+
+            if field in PROTECTED_FIELDS and merged.get(field) is not None:
+                continue  # já temos um valor de fato pra esse campo, não sobrescreve
+
+            if field in APPENDABLE_FIELDS and merged.get(field):
+                merged[field] = f"{merged[field]}\n\n---\n\n{value}"
+                continue
+
+            merged[field] = value
         comparison = ModelComparison(**merged)
 
     # Converte o objeto em texto JSON e escreve no arquivo.

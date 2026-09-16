@@ -50,6 +50,17 @@ def generate_report() -> None:
             f"{ref_imgs:>9} {prompt_tok:>11} {multi_shot:>11}"
         )
 
+    # Seção separada pra qualidade: é texto longo (resumo de reviews), não
+    # cabe numa coluna de tabela sem virar ilegível ou cortado demais.
+    with_quality = [c for c in comparisons if c.quality_notes]
+    if with_quality:
+        print()
+        print("Quality notes:")
+        print("-" * len(header))
+        for c in with_quality:
+            print(f"\n{c.model_name}:")
+            print(f"  {c.quality_notes}")
+
 
 if __name__ == "__main__":
     generate_report()
