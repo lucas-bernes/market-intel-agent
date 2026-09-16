@@ -1,6 +1,15 @@
 from pathlib import Path
 from .schema import ModelComparison
 
+MODEL_WIDTH = 24
+PROVIDER_WIDTH = 16
+
+
+def _truncate(text: str, width: int) -> str:
+    # Corta textos longos (nomes de modelo variam muito de tamanho) em vez
+    # de deixar eles "empurrarem" as colunas seguintes pra direita.
+    return text if len(text) <= width else text[: width - 3] + "..."
+
 
 def generate_report() -> None:
     project_root = Path(__file__).parent.parent.parent
@@ -20,7 +29,10 @@ def generate_report() -> None:
         print("Nenhum modelo encontrado em data/models/.")
         return
 
-    header = f"{'Model':<20} {'Provider':<12} {'$/s':>8} {'Ref imgs':>9} {'Prompt tok':>11} {'Multi-shot':>11}"
+    header = (
+        f"{'Model':<{MODEL_WIDTH}} {'Provider':<{PROVIDER_WIDTH}} "
+        f"{'$/s':>8} {'Ref imgs':>9} {'Prompt tok':>11} {'Multi-shot':>11}"
+    )
     print(header)
     print("-" * len(header))
     for c in comparisons:
@@ -30,9 +42,11 @@ def generate_report() -> None:
         ref_imgs = "N/A" if c.max_reference_images is None else str(c.max_reference_images)
         prompt_tok = "N/A" if c.prompt_window_tokens is None else str(c.prompt_window_tokens)
         multi_shot = "N/A" if c.multi_shot_support is None else str(c.multi_shot_support)
+        model_name = _truncate(c.model_name, MODEL_WIDTH)
+        provider = _truncate(c.provider, PROVIDER_WIDTH)
 
         print(
-            f"{c.model_name:<20} {c.provider:<12} {price:>8} "
+            f"{model_name:<{MODEL_WIDTH}} {provider:<{PROVIDER_WIDTH}} {price:>8} "
             f"{ref_imgs:>9} {prompt_tok:>11} {multi_shot:>11}"
         )
 
