@@ -24,9 +24,16 @@ def generate_report() -> None:
     print(header)
     print("-" * len(header))
     for c in comparisons:
+        # Campos podem ser None (a página de origem não mencionava aquele
+        # dado) — mostramos "N/A" em vez de fingir que o valor é 0/False.
+        price = "N/A" if c.price_per_second_usd is None else f"{c.price_per_second_usd:.2f}"
+        ref_imgs = "N/A" if c.max_reference_images is None else str(c.max_reference_images)
+        prompt_tok = "N/A" if c.prompt_window_tokens is None else str(c.prompt_window_tokens)
+        multi_shot = "N/A" if c.multi_shot_support is None else str(c.multi_shot_support)
+
         print(
-            f"{c.model_name:<20} {c.provider:<12} {c.price_per_second_usd:>8.2f} "
-            f"{c.max_reference_images:>9} {c.prompt_window_tokens:>11} {str(c.multi_shot_support):>11}"
+            f"{c.model_name:<20} {c.provider:<12} {price:>8} "
+            f"{ref_imgs:>9} {prompt_tok:>11} {multi_shot:>11}"
         )
 
 
