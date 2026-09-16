@@ -20,7 +20,7 @@ def generate_report() -> None:
         return
 
     comparisons = [
-        ModelComparison.model_validate_json(file_path.read_text())
+        ModelComparison.model_validate_json(file_path.read_text(encoding="utf-8"))
         for file_path in models_dir.iterdir()
         if file_path.suffix == ".json"
     ]
