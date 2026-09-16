@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
 class ModelComparison(BaseModel):
@@ -17,3 +17,13 @@ class ModelComparison(BaseModel):
         ),
     )
     notes: Optional[str] = None
+
+
+class ModelComparisonOut(ModelComparison):
+    # Só existe na saída da API, não durante a extração via LLM — é o
+    # identificador estável usado como chave no banco (o antigo nome de
+    # arquivo), útil pro frontend referenciar uma linha específica (ex: pro
+    # clique que abre o detalhe de um modelo).
+    model_config = ConfigDict(from_attributes=True)
+
+    model_key: str

@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .schema import ModelComparison
-from .store import load_all_comparisons
+from .db import ModelRecord, SessionLocal
+from .schema import ModelComparisonOut
 
 app = FastAPI(title="Market Intel API")
 
@@ -17,6 +17,10 @@ app.add_middleware(
 )
 
 
-@app.get("/api/models", response_model=list[ModelComparison])
-def list_models() -> list[ModelComparison]:
-    return load_all_comparisons()
+@app.get("/api/models", response_model=list[ModelComparisonOut])
+def list_models() -> list[ModelComparisonOut]:
+    # Consulta o banco direto aqui (em vez de load_all_comparisons) porque
+    # precisamos do model_key junto, que o ModelComparison normal não tem.
+    with SessionLocal() as session:
+        records = session.query(ModelRecord).all()
+        return [ModelComparisonOut.model_validate(r) for r in records]
