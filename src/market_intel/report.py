@@ -1,5 +1,4 @@
-from pathlib import Path
-from .schema import ModelComparison
+from .store import load_all_comparisons
 
 MODEL_WIDTH = 24
 PROVIDER_WIDTH = 16
@@ -12,18 +11,7 @@ def _truncate(text: str, width: int) -> str:
 
 
 def generate_report() -> None:
-    project_root = Path(__file__).parent.parent.parent
-    models_dir = project_root / "data" / "models"
-
-    if not models_dir.exists():
-        print("Nenhum modelo encontrado em data/models/.")
-        return
-
-    comparisons = [
-        ModelComparison.model_validate_json(file_path.read_text(encoding="utf-8"))
-        for file_path in models_dir.iterdir()
-        if file_path.suffix == ".json"
-    ]
+    comparisons = load_all_comparisons()
 
     if not comparisons:
         print("Nenhum modelo encontrado em data/models/.")

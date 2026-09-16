@@ -149,6 +149,9 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# Local database (recreated via the migration/pipeline scripts, not versioned)
+data/*.db
+
 # Environments
 .env
 .envrc

@@ -1,4 +1,4 @@
-from pathlib import Path
+from .db import ModelRecord, SessionLocal
 from .schema import ModelComparison
 
 # Campos de fato: tratamos a primeira fonte que preencheu como confiável e
@@ -18,43 +18,54 @@ PROTECTED_FIELDS = {
 APPENDABLE_FIELDS = {"quality_notes", "notes"}
 
 
+def _record_to_comparison(record: ModelRecord) -> ModelComparison:
+    return ModelComparison(
+        model_name=record.model_name,
+        provider=record.provider,
+        price_per_second_usd=record.price_per_second_usd,
+        max_reference_images=record.max_reference_images,
+        prompt_window_tokens=record.prompt_window_tokens,
+        multi_shot_support=record.multi_shot_support,
+        quality_notes=record.quality_notes,
+        notes=record.notes,
+    )
+
+
 def save_model_comparison(comparison: ModelComparison, model_key: str) -> None:
-    # Path(__file__) = caminho deste próprio arquivo (store.py).
-    # Cada .parent sobe uma pasta, até chegar na raiz do projeto.
-    project_root = Path(__file__).parent.parent.parent
-
-    # Junta a raiz do projeto com "data/models" — o caminho da pasta de destino.
-    models_dir = project_root / "data" / "models"
-
-    # Garante que essa pasta existe antes de tentar salvar algo nela.
-    models_dir.mkdir(parents=True, exist_ok=True)
-
-    # O nome do arquivo agora vem do model_key escolhido por quem chama a
-    # função — não mais do comparison.model_name, que o LLM extrai de forma
-    # diferente a cada fonte ("Kling 3.0" vs "Kling 3.0 (VIDEO 3.0)"), o que
-    # criava entradas duplicadas em vez de mesclar dados do mesmo modelo.
+    # model_key continua sendo o identificador estável escolhido por quem
+    # chama a função — não muda com a extração; antes era o nome do arquivo,
+    # agora é a chave primária da linha na tabela "models".
     safe_key = model_key.lower().replace(" ", "-").replace("/", "-")
-    file_path = models_dir / f"{safe_key}.json"
 
-    # Se já existe um registro salvo pra esse modelo (de uma extração
-    # anterior, possivelmente de outra fonte), mescla em vez de sobrescrever,
-    # com uma regra diferente por tipo de campo:
-    if file_path.exists():
-        existing = ModelComparison.model_validate_json(file_path.read_text(encoding="utf-8"))
-        merged = existing.model_dump()
-        for field, value in comparison.model_dump().items():
-            if value is None:
-                continue  # fonte atual não mencionou isso, mantém o que já tinha
+    with SessionLocal() as session:
+        existing = session.get(ModelRecord, safe_key)
 
-            if field in PROTECTED_FIELDS and merged.get(field) is not None:
-                continue  # já temos um valor de fato pra esse campo, não sobrescreve
+        if existing is None:
+            # Modelo novo: cria a linha direto com os dados extraídos.
+            record = ModelRecord(model_key=safe_key, **comparison.model_dump())
+            session.add(record)
+        else:
+            # Já existe: mescla campo por campo, com a mesma regra de antes
+            # (protegidos não são sobrescritos, texto livre acumula).
+            for field, value in comparison.model_dump().items():
+                if value is None:
+                    continue
 
-            if field in APPENDABLE_FIELDS and merged.get(field):
-                merged[field] = f"{merged[field]}\n\n---\n\n{value}"
-                continue
+                current = getattr(existing, field)
 
-            merged[field] = value
-        comparison = ModelComparison(**merged)
+                if field in PROTECTED_FIELDS and current is not None:
+                    continue
 
-    # Converte o objeto em texto JSON e escreve no arquivo.
-    file_path.write_text(comparison.model_dump_json(), encoding="utf-8")
+                if field in APPENDABLE_FIELDS and current:
+                    setattr(existing, field, f"{current}\n\n---\n\n{value}")
+                    continue
+
+                setattr(existing, field, value)
+
+        session.commit()
+
+
+def load_all_comparisons() -> list[ModelComparison]:
+    with SessionLocal() as session:
+        records = session.query(ModelRecord).all()
+        return [_record_to_comparison(r) for r in records]
