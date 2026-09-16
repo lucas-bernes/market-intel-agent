@@ -1,5 +1,12 @@
-import Card from './Card.jsx'
 import { fmt } from '../lib/scoring.js'
+
+function MultiShotChip({ yes }) {
+  return yes ? (
+    <span className="chip" style={{ background: 'rgba(34,197,94,.14)', color: '#4ade80' }}>Multi-shot: Yes</span>
+  ) : (
+    <span className="chip" style={{ background: 'rgba(255,255,255,.08)', color: '#9a9aa2' }}>Multi-shot: No</span>
+  )
+}
 
 export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) {
   const withPrice = ranked.filter((m) => m.pricePerSecond != null)
@@ -17,12 +24,43 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
     : null
   const multiShotCount = ranked.filter((m) => m.multiShot).length
 
+  const kpis = [
+    {
+      label: 'Cheapest / sec',
+      color: ['rgba(139,92,246,.15)', '#a78bfa'],
+      icon: <path d="M2 12l3-4 3 2 3-5 3 3" />,
+      value: cheapest ? cheapest.name : '—',
+      sub: cheapest ? `$${cheapest.pricePerSecond.toFixed(3)}/s` : 'sem dado',
+    },
+    {
+      label: 'Largest prompt window',
+      color: ['rgba(59,130,246,.15)', '#60a5fa'],
+      icon: <><rect x="2" y="2" width="12" height="12" rx="2" /><line x1="2" y1="7" x2="14" y2="7" /></>,
+      value: largestPrompt ? largestPrompt.name : '—',
+      sub: largestPrompt ? `${largestPrompt.promptWindowTokens} tokens` : 'sem dado',
+    },
+    {
+      label: 'Best quality score',
+      color: ['rgba(20,184,166,.15)', '#2dd4bf'],
+      icon: <><circle cx="8" cy="8" r="6" /><path d="M8 5v3l2 2" /></>,
+      value: bestQuality ? bestQuality.name : '—',
+      sub: bestQuality ? `${bestQuality.qualityScore}/10` : 'sem nota numérica ainda',
+    },
+    {
+      label: 'Multi-shot support',
+      color: ['rgba(245,165,36,.15)', '#f5a524'],
+      icon: <><rect x="2" y="9" width="3" height="5" /><rect x="6.5" y="5" width="3" height="9" /><rect x="11" y="2" width="3" height="12" /></>,
+      value: `${multiShotCount} of ${ranked.length} models`,
+      sub: 'Reduces reference-image need',
+    },
+  ]
+
   return (
     <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 32 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
-          <h2>Ranking</h2>
-          <p className="text-muted" style={{ fontSize: 14, maxWidth: 560 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Ranking</h2>
+          <p className="muted" style={{ fontSize: 14, maxWidth: 560 }}>
             Scored by cost per second, prompt window, multi-shot support and quality (quando disponível).
           </p>
         </div>
@@ -32,51 +70,41 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
       </div>
 
       <div className="kpi-grid">
-        <Card>
-          <div className="tag-outline" style={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>Cheapest / sec</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, marginTop: 6 }}>{cheapest ? cheapest.name : '—'}</div>
-          <div className="text-muted" style={{ fontSize: 11, marginTop: 4 }}>{cheapest ? `$${cheapest.pricePerSecond.toFixed(3)}/s` : 'sem dado'}</div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>Largest prompt window</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, marginTop: 6 }}>{largestPrompt ? largestPrompt.name : '—'}</div>
-          <div className="text-muted" style={{ fontSize: 11, marginTop: 4 }}>{largestPrompt ? `${largestPrompt.promptWindowTokens} tokens` : 'sem dado'}</div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>Best quality score</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, marginTop: 6 }}>{bestQuality ? bestQuality.name : '—'}</div>
-          <div className="text-muted" style={{ fontSize: 11, marginTop: 4 }}>{bestQuality ? `${bestQuality.qualityScore}/10` : 'sem nota numérica ainda'}</div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>Multi-shot support</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, marginTop: 6 }}>{multiShotCount} of {ranked.length} models</div>
-          <div className="text-muted" style={{ fontSize: 11, marginTop: 4 }}>Reduces reference-image need</div>
-        </Card>
+        {kpis.map((kpi) => (
+          <div className="kpi-card" key={kpi.label}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div className="kpi-icon" style={{ background: kpi.color[0], color: kpi.color[1] }}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">{kpi.icon}</svg>
+              </div>
+              <div style={{ fontSize: 11 }} className="muted">{kpi.label}</div>
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>{kpi.value}</div>
+            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>{kpi.sub}</div>
+          </div>
+        ))}
       </div>
 
-      <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {ranked.map((m, i) => (
-          <Card key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 20, cursor: 'pointer', padding: '18px 22px', marginBottom: 10 }}>
-            <div className="rank-row-click" onClick={() => onSelectModel(m.id)} style={{ display: 'contents' }}>
-              <div className="rank-badge">{i + 1}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--font-heading)', fontSize: 17 }}>{m.name}</span>
-                  <span className="text-muted" style={{ fontSize: 12 }}>{m.provider}</span>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                  <span className="tag tag-accent">{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}/s`)}</span>
-                  <span className="tag tag-accent">{fmt(m.promptWindowTokens, (v) => `${v.toLocaleString()} tok`)}</span>
-                  <span className={`tag ${m.multiShot ? 'tag-accent' : 'tag-neutral'}`}>Multi-shot: {m.multiShot ? 'Yes' : 'No'}</span>
-                </div>
-                <div className="bar-track"><div className="bar-fill" style={{ width: `${m.score.toFixed(0)}%` }}></div></div>
+          <div className="rank-row" key={m.id} onClick={() => onSelectModel(m.id)}>
+            <div className="rank-badge">{i + 1}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 16, fontWeight: 600 }}>{m.name}</span>
+                <span className="muted" style={{ fontSize: 12 }}>{m.provider}</span>
               </div>
-              <div className="score-box">
-                <div className="num">{m.score.toFixed(1)}</div>
-                <div className="text-muted" style={{ fontSize: 11 }}>score / 100</div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                <span className="chip" style={{ background: 'rgba(59,130,246,.14)', color: '#7db4fb' }}>{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}/s`)}</span>
+                <span className="chip" style={{ background: 'rgba(20,184,166,.14)', color: '#4fd6c4' }}>{fmt(m.promptWindowTokens, (v) => `${v.toLocaleString()} tok`)}</span>
+                <MultiShotChip yes={m.multiShot} />
               </div>
+              <div className="bar-track"><div className="bar-fill" style={{ width: `${m.score.toFixed(0)}%` }}></div></div>
             </div>
-          </Card>
+            <div className="score-box">
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{m.score.toFixed(1)}</div>
+              <div className="muted" style={{ fontSize: 11 }}>score / 100</div>
+            </div>
+          </div>
         ))}
       </div>
     </section>

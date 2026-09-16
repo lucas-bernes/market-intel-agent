@@ -1,13 +1,22 @@
+import Card from './Card.jsx'
 import { fmt } from '../lib/scoring.js'
+
+function MultiShotTag({ yes }) {
+  return yes ? (
+    <span className="chip" style={{ background: 'rgba(34,197,94,.14)', color: '#4ade80' }}>Yes</span>
+  ) : (
+    <span className="chip" style={{ background: 'rgba(255,255,255,.08)', color: '#9a9aa2' }}>No</span>
+  )
+}
 
 export default function ComparisonTableView({ ranked, onSelectModel }) {
   return (
     <section>
-      <h2>Comparison table</h2>
-      <p className="text-muted" style={{ fontSize: 14, marginBottom: 20, display: 'block' }}>
+      <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Comparison table</h2>
+      <p className="muted" style={{ fontSize: 14, marginBottom: 20 }}>
         All models side-by-side, ranked order.
       </p>
-      <div style={{ overflowX: 'auto' }}>
+      <Card style={{ padding: 6, overflowX: 'auto' }}>
         <table style={{ minWidth: 760 }}>
           <thead>
             <tr>
@@ -19,20 +28,20 @@ export default function ComparisonTableView({ ranked, onSelectModel }) {
           <tbody>
             {ranked.map((m) => (
               <tr key={m.id} style={{ cursor: 'pointer' }} onClick={() => onSelectModel(m.id)}>
-                <td style={{ fontWeight: 500 }}>{m.name}</td>
-                <td>{m.provider}</td>
+                <td style={{ fontWeight: 600 }}>{m.name}</td>
+                <td className="muted">{m.provider}</td>
                 <td className="num">{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}`)}</td>
                 <td className="num">{fmt(m.pricePerImage, (v) => `$${v.toFixed(3)}`)}</td>
                 <td className="num">{fmt(m.maxReferenceImages, (v) => v)}</td>
                 <td className="num">{fmt(m.promptWindowTokens, (v) => v.toLocaleString())}</td>
-                <td><span className={`tag ${m.multiShot ? 'tag-accent' : 'tag-neutral'}`}>{m.multiShot ? 'Yes' : 'No'}</span></td>
+                <td><MultiShotTag yes={m.multiShot} /></td>
                 <td className="num">{fmt(m.qualityScore, (v) => `${v.toFixed(1)}/10`)}</td>
                 <td className="num">{fmt(m.latencySeconds, (v) => `${v}s`)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </section>
   )
 }

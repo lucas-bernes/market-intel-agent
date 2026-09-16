@@ -35,16 +35,16 @@ export default function PriceHistoryView() {
 
   return (
     <section>
-      <h2>Price history</h2>
-      <p className="text-muted" style={{ fontSize: 14, marginBottom: 8, display: 'block' }}>
+      <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Price history</h2>
+      <p className="muted" style={{ fontSize: 14, marginBottom: 8 }}>
         Six-month $/second trend, per model.
       </p>
-      <p className="text-muted" style={{ fontSize: 12, marginBottom: 20, display: 'block' }}>
-        <span className="tag tag-outline">Preview data</span> não coletamos histórico de preço real ainda — isso aqui é ilustrativo.
+      <p className="muted" style={{ fontSize: 12, marginBottom: 20 }}>
+        <span className="pill">Preview data</span> não coletamos histórico de preço real ainda — isso aqui é ilustrativo.
       </p>
 
       <div style={{ maxWidth: 280, marginBottom: 20 }}>
-        <label className="field-label text-muted" style={{ fontSize: 12, display: 'block', marginBottom: 5 }}>Model</label>
+        <label className="muted" style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>Model</label>
         <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
           {HISTORY_MODELS.map((m) => (
             <option key={m.id} value={m.id}>{m.name}</option>
@@ -52,36 +52,40 @@ export default function PriceHistoryView() {
         </select>
       </div>
 
-      <Card style={{ marginBottom: 20 }}>
+      <Card style={{ padding: 24, marginBottom: 20 }}>
         <svg width="100%" height="220" viewBox="0 0 640 220">
-          <line x1="34" y1="190" x2="606" y2="190" stroke="var(--color-divider)" strokeWidth="1" />
-          <polyline points={points} fill="none" stroke="var(--color-accent)" strokeWidth="2" />
-          <text x="4" y="40" fontSize="11" fill="currentColor" opacity="0.6">${maxH.toFixed(3)}</text>
-          <text x="4" y="185" fontSize="11" fill="currentColor" opacity="0.6">${minH.toFixed(3)}</text>
+          <line x1="34" y1="190" x2="606" y2="190" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
+          <polyline points={points} fill="none" stroke="#2dd4bf" strokeWidth="2" />
+          <text x="4" y="40" fontSize="11" fill="#8b8b93">${maxH.toFixed(3)}</text>
+          <text x="4" y="185" fontSize="11" fill="#8b8b93">${minH.toFixed(3)}</text>
           {MONTHS.map((label, i) => {
             const x = (34 + i * ((640 - 68) / (MONTHS.length - 1))).toFixed(1)
-            return <text key={label} x={x} y="208" fontSize="11" fill="currentColor" opacity="0.6">{label}</text>
+            return <text key={label} x={x} y="208" fontSize="11" fill="#8b8b93">{label}</text>
           })}
         </svg>
       </Card>
 
-      <table style={{ maxWidth: 460 }}>
-        <thead><tr><th>Month</th><th className="num">$/second</th><th className="num">Change</th></tr></thead>
-        <tbody>
-          {MONTHS.map((label, i) => {
-            const price = model.history[i]
-            const prev = i > 0 ? model.history[i - 1] : null
-            const change = prev != null ? (((price - prev) / prev) * 100).toFixed(1) : null
-            return (
-              <tr key={label}>
-                <td>{label}</td>
-                <td className="num">${price.toFixed(3)}</td>
-                <td className="num">{change != null ? `${change > 0 ? '+' : ''}${change}%` : '—'}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <Card style={{ padding: 6, overflowX: 'auto' }}>
+        <table style={{ maxWidth: 460 }}>
+          <thead><tr><th>Month</th><th className="num">$/second</th><th className="num">Change</th></tr></thead>
+          <tbody>
+            {MONTHS.map((label, i) => {
+              const price = model.history[i]
+              const prev = i > 0 ? model.history[i - 1] : null
+              const change = prev != null ? (((price - prev) / prev) * 100).toFixed(1) : null
+              const isDown = change != null && Number(change) <= 0
+              const color = change == null ? '#8b8b93' : isDown ? '#4ade80' : '#f87171'
+              return (
+                <tr key={label}>
+                  <td>{label}</td>
+                  <td className="num">${price.toFixed(3)}</td>
+                  <td className="num" style={{ color }}>{change != null ? `${change > 0 ? '+' : ''}${change}%` : '—'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </Card>
     </section>
   )
 }

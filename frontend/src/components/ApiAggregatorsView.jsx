@@ -1,3 +1,5 @@
+import Card from './Card.jsx'
+
 // Ilustrativo: ainda não pesquisamos provedores de API de verdade
 // (a "Frente B" do projeto, pendente).
 const AGGREGATORS = [
@@ -10,14 +12,14 @@ const AGGREGATORS = [
 export default function ApiAggregatorsView() {
   return (
     <section>
-      <h2>API aggregators</h2>
-      <p className="text-muted" style={{ fontSize: 14, maxWidth: 600, marginBottom: 8, display: 'block' }}>
+      <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>API aggregators</h2>
+      <p className="muted" style={{ fontSize: 14, maxWidth: 600, marginBottom: 8 }}>
         Unified-API alternatives to fal.ai, our current provider.
       </p>
-      <p className="text-muted" style={{ fontSize: 12, marginBottom: 20, display: 'block' }}>
-        <span className="tag tag-outline">Preview data</span> ainda não pesquisamos provedores de verdade — isso aqui é ilustrativo.
+      <p className="muted" style={{ fontSize: 12, marginBottom: 20 }}>
+        <span className="pill">Preview data</span> ainda não pesquisamos provedores de verdade — isso aqui é ilustrativo.
       </p>
-      <div style={{ overflowX: 'auto' }}>
+      <Card style={{ padding: 6, overflowX: 'auto' }}>
         <table style={{ minWidth: 640 }}>
           <thead>
             <tr>
@@ -28,18 +30,24 @@ export default function ApiAggregatorsView() {
           <tbody>
             {AGGREGATORS.map((a) => (
               <tr key={a.id}>
-                <td style={{ fontWeight: 500 }}>{a.name}</td>
-                <td><span className={`tag ${a.current ? 'tag-accent' : 'tag-outline'}`}>{a.current ? 'Current' : 'Alternative'}</span></td>
+                <td style={{ fontWeight: 600 }}>{a.name}</td>
+                <td>
+                  {a.current ? (
+                    <span className="chip" style={{ background: 'rgba(139,92,246,.14)', color: '#c4b5fd' }}>Current</span>
+                  ) : (
+                    <span className="chip" style={{ border: '1px solid rgba(255,255,255,.14)', color: '#9a9aa2' }}>Alternative</span>
+                  )}
+                </td>
                 <td className="num">{a.overheadPct}%</td>
                 <td className="num">{a.uptimePct.toFixed(1)}%</td>
                 <td className="num">{a.modelsSupported} / 7</td>
                 <td className="num">{a.addedLatencyMs} ms</td>
-                <td className="text-muted" style={{ fontSize: 13, maxWidth: 220 }}>{a.notes}</td>
+                <td className="muted" style={{ fontSize: 13, maxWidth: 220 }}>{a.notes}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </section>
   )
 }

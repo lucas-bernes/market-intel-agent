@@ -37,12 +37,12 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="nav">
-        <div className="nav-brand">Model Intelligence</div>
-        <span className="tag tag-outline" style={{ whiteSpace: 'nowrap' }}>
+      <div className="topnav">
+        <div className="brand">Market Intelligence Agent</div>
+        <span className="pill">
           {loadError ? 'Erro ao carregar API' : models.length ? `${models.length} modelos (dado real)` : 'Loading...'}
         </span>
-        <button className="btn" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>Export ↗</button>
+        <button className="btn btn-primary" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>Export ↗</button>
       </div>
 
       <Sidebar activeView={view} onNavigate={setView} />
