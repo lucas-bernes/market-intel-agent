@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Intelligence Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@600&display=swap');
+
+  :root {
+    --color-bg: #f2f2f3;
+    --color-surface: #e9e9ea;
+    --color-text: #1d1f20;
+    --color-accent: #5980a6;
+    --color-accent-100: #eef6ff;
+    --color-accent-200: #d6ebff;
+    --color-accent-700: #416180;
+    --color-accent-800: #2c455d;
+    --color-neutral-100: #f5f5f8;
+    --color-neutral-800: #424244;
+    --color-divider: rgba(29,31,32,0.16);
+    --font-heading: "Barlow Condensed", system-ui, sans-serif;
+    --font-body: "Barlow", system-ui, sans-serif;
+    --radius-md: 4px;
+    --shadow-sm: 0 1px 2px rgba(43,43,45,0.14);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 15px; }
+  h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 600; margin: 0 0 6px; }
+  p { margin: 0; }
+  .text-muted { color: rgba(29,31,32,0.55); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+
+  .btn { font-family: var(--font-heading); font-weight: 600; font-size: 14px; padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--color-divider); background: transparent; color: var(--color-text); cursor: pointer; }
+  .btn:hover { background: rgba(29,31,32,0.06); }
+  .btn-ghost { border-color: transparent; color: var(--color-accent-700); padding: 0; }
+  .btn-ghost:hover { background: transparent; text-decoration: underline; }
+  .btn[disabled] { opacity: 0.4; cursor: default; }
+
+  .tag { display: inline-flex; align-items: center; font-size: 11px; letter-spacing: 0.02em; padding: 3px 10px; border-radius: 3px; }
+  .tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
+  .tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+  .tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent-700); }
+
+  .card { position: relative; border: 1px solid var(--color-divider); padding: 16px 20px; }
+  .corner { position: absolute; width: 11px; height: 11px; color: rgba(29,31,32,0.55); }
+  .corner::before, .corner::after { content: ""; position: absolute; background: currentColor; }
+  .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+  .corner::after { top: 5px; left: 0; width: 100%; height: 1px; }
+  .corner.tl { top: -6px; left: -6px; } .corner.tr { top: -6px; right: -6px; }
+  .corner.bl { bottom: -6px; left: -6px; } .corner.br { bottom: -6px; right: -6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(29,31,32,0.6); padding: 10px; border-bottom: 1px solid var(--color-divider); }
+  th.num, td.num { text-align: right; }
+  td { padding: 10px; border-bottom: 1px solid rgba(29,31,32,0.08); }
+  tbody tr:hover { background: rgba(29,31,32,0.04); }
+
+  .app-shell { display: grid; grid-template-columns: 212px 1fr; min-height: 100vh; }
+  .nav { display: flex; align-items: center; gap: 16px; padding: 14px 28px; border-bottom: 1px solid var(--color-divider); grid-column: 1 / -1; }
+  .nav-brand { font-family: var(--font-heading); font-weight: 600; font-size: 18px; }
+  .sidebar { display: flex; flex-direction: column; gap: 2px; padding: 24px 14px; border-right: 1px solid var(--color-divider); }
+  .sidebar .kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 12px 10px; color: rgba(29,31,32,0.55); }
+  .navbtn { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: var(--radius-md); cursor: pointer; border: none; background: transparent; font: 14px var(--font-body); color: rgba(29,31,32,0.75); text-align: left; width: 100%; }
+  .navbtn:hover { background: rgba(29,31,32,0.06); }
+  .navbtn.active { background: var(--color-accent-100); color: var(--color-accent-800); font-weight: 500; }
+  .navbtn svg { flex-shrink: 0; }
+
+  main { padding: 36px 44px; overflow: auto; min-width: 0; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 16px; margin-bottom: 36px; }
+  .rank-row { display: flex; align-items: center; gap: 20px; cursor: pointer; padding: 18px 22px; margin-bottom: 10px; }
+  .rank-row:hover { border-color: var(--color-accent); box-shadow: var(--shadow-sm); }
+  .rank-badge { width: 32px; height: 32px; border: 1.5px solid var(--color-accent); background: var(--color-accent-100); color: var(--color-accent-800); display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 15px; flex-shrink: 0; }
+  .score-box { text-align: right; flex-shrink: 0; background: var(--color-accent-100); padding: 8px 14px; border: 1px solid var(--color-accent-200); }
+  .score-box .num { font-family: var(--font-heading); font-size: 22px; color: var(--color-accent-800); }
+  .bar-track { height: 6px; background: var(--color-divider); border-radius: 3px; overflow: hidden; margin-top: 10px; max-width: 320px; }
+  .bar-fill { height: 100%; background: var(--color-accent); }
+  .spec-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; margin-bottom: 24px; }
+  input[type="range"] { width: 100%; accent-color: var(--color-accent); }
+  select, .field-label { font-family: var(--font-body); }
+  select { width: 100%; min-height: 36px; padding: 6px 10px; font-size: 14px; background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-md); }
+
+  .status-msg { padding: 24px 4px; color: rgba(29,31,32,0.6); }
+
+  @media (max-width: 760px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { grid-row: 1; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--color-divider); }
+    .sidebar .navlabel, .sidebar .kicker { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="nav">
+    <div class="nav-brand">Model Intelligence</div>
+    <span class="tag tag-outline" style="white-space:nowrap" id="data-status-tag">Loading...</span>
+    <button class="btn" style="margin-left:auto;white-space:nowrap">Export ↗</button>
+  </div>
+
+  <aside class="sidebar">
+    <div class="kicker">Views</div>
+    <button class="navbtn" data-view="overview">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="9" cy="9" r="2"/></svg>
+      <span class="navlabel">Ranking</span>
+    </button>
+    <button class="navbtn" data-view="table">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="14" height="12" rx="1"/><line x1="2" y1="8" x2="16" y2="8"/><line x1="9" y1="3" x2="9" y2="15"/></svg>
+      <span class="navlabel">Comparison table</span>
+    </button>
+    <button class="navbtn" data-view="detail">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="12" height="14" rx="1"/><line x1="6" y1="6" x2="13" y2="6"/><line x1="6" y1="9" x2="13" y2="9"/><line x1="6" y1="12" x2="11" y2="12"/></svg>
+      <span class="navlabel">Model detail</span>
+    </button>
+    <button class="navbtn" data-view="history">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2,14 7,9 10,11 16,4"/><line x1="2" y1="16" x2="16" y2="16"/></svg>
+      <span class="navlabel">Price history</span>
+    </button>
+    <button class="navbtn" data-view="aggregators">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="12" height="3"/><rect x="3" y="7.5" width="12" height="3"/><rect x="3" y="13" width="12" height="3"/></svg>
+      <span class="navlabel">API aggregators</span>
+    </button>
+    <button class="navbtn" data-view="config">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="5" x2="16" y2="5"/><circle cx="11" cy="5" r="2"/><line x1="2" y1="9" x2="16" y2="9"/><circle cx="6" cy="9" r="2"/><line x1="2" y1="13" x2="16" y2="13"/><circle cx="13" cy="13" r="2"/></svg>
+      <span class="navlabel">Ranking weights</span>
+    </button>
+  </aside>
+
+  <main>
+
+    <section class="view" id="view-overview">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:32px">
+        <div>
+          <h2>Ranking</h2>
+          <p class="text-muted" style="font-size:14px;max-width:560px">Scored by cost per second, prompt window, multi-shot support and quality (quando disponível).</p>
+        </div>
+        <button class="btn" style="white-space:nowrap" data-goto="config">Adjust weights</button>
+      </div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div id="rank-list"></div>
+    </section>
+
+    <section class="view" id="view-table">
+      <h2>Comparison table</h2>
+      <p class="text-muted" style="font-size:14px;margin-bottom:20px;display:block">All models side-by-side, ranked order.</p>
+      <div style="overflow-x:auto">
+        <table style="min-width:760px">
+          <thead><tr><th>Model</th><th>Provider</th><th class="num">$/s</th><th class="num">$/image</th><th class="num">Ref imgs</th><th class="num">Prompt window</th><th>Multi-shot</th><th class="num">Quality</th><th class="num">Latency</th></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="view-detail">
+      <button class="btn btn-ghost" style="margin-bottom:16px" data-goto="overview">← Back to ranking</button>
+      <div id="detail-content"></div>
+    </section>
+
+    <section class="view" id="view-history">
+      <h2>Price history</h2>
+      <p class="text-muted" style="font-size:14px;margin-bottom:8px;display:block">Six-month $/second trend, per model.</p>
+      <p class="text-muted" style="font-size:12px;margin-bottom:20px;display:block"><span class="tag tag-outline">Preview data</span> não coletamos histórico de preço real ainda — isso aqui é ilustrativo.</p>
+      <div style="max-width:280px;margin-bottom:20px">
+        <label class="field-label text-muted" style="font-size:12px;display:block;margin-bottom:5px">Model</label>
+        <select id="history-select"></select>
+      </div>
+      <div class="card" style="margin-bottom:20px"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <svg width="100%" height="220" viewBox="0 0 640 220" id="history-chart"></svg>
+      </div>
+      <table style="max-width:460px">
+        <thead><tr><th>Month</th><th class="num">$/second</th><th class="num">Change</th></tr></thead>
+        <tbody id="history-rows"></tbody>
+      </table>
+    </section>
+
+    <section class="view" id="view-aggregators">
+      <h2>API aggregators</h2>
+      <p class="text-muted" style="font-size:14px;max-width:600px;margin-bottom:8px;display:block">Unified-API alternatives to fal.ai, our current provider.</p>
+      <p class="text-muted" style="font-size:12px;margin-bottom:20px;display:block"><span class="tag tag-outline">Preview data</span> ainda não pesquisamos provedores de verdade — isso aqui é ilustrativo.</p>
+      <div style="overflow-x:auto">
+        <table style="min-width:640px">
+          <thead><tr><th>Aggregator</th><th></th><th class="num">Overhead</th><th class="num">Uptime</th><th class="num">Coverage</th><th class="num">Added latency</th><th>Notes</th></tr></thead>
+          <tbody id="aggregators-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="view-config">
+      <h2>Ranking weights</h2>
+      <p class="text-muted" style="font-size:14px;max-width:520px;margin-bottom:24px;display:block">Adjust how much each factor counts toward the ranking score. Changes apply immediately.</p>
+      <div style="display:flex;flex-direction:column;gap:22px;max-width:480px" id="weights-panel"></div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Onde a API do backend está rodando (uvicorn local, por enquanto).
+// ---------------------------------------------------------------------------
+const API_URL = 'http://127.0.0.1:8000/api/models';
+
+// MODELS começa vazio e é preenchido de verdade em loadModels(), com dado
+// vindo da API — nada aqui é mockado.
+let MODELS = [];
+
+// AGGREGATORS continua sendo dado ilustrativo (não pesquisamos provedores
+// de API de verdade ainda — é a "Frente B" do projeto, pendente).
+const AGGREGATORS = [
+  { id:'fal', name:'fal.ai', current:true, overheadPct:8, uptimePct:99.5, modelsSupported:6, addedLatencyMs:120, notes:'Current provider. Fastest to add day-one releases.' },
+  { id:'replicate', name:'Replicate', current:false, overheadPct:12, uptimePct:99.7, modelsSupported:5, addedLatencyMs:200, notes:'Broadest catalog, slower to onboard new video releases.' },
+  { id:'together', name:'Together AI', current:false, overheadPct:6, uptimePct:99.2, modelsSupported:3, addedLatencyMs:90, notes:'Lowest overhead, limited video-model coverage today.' },
+  { id:'baseten', name:'Baseten', current:false, overheadPct:10, uptimePct:99.6, modelsSupported:4, addedLatencyMs:150, notes:'Best fit as a self-hosted fallback.' }
+];
+
+// HISTORY_MODELS é deliberadamente separado de MODELS: não guardamos preço
+// histórico de verdade ainda (só o valor atual), então essa tela continua
+// 100% ilustrativa, desacoplada do dado real.
+const HISTORY_MODELS = [
+  { id:'illustrative-a', name:'(exemplo) Modelo A', history:[0.52,0.48,0.44,0.40,0.37,0.35] },
+  { id:'illustrative-b', name:'(exemplo) Modelo B', history:[0.60,0.58,0.55,0.53,0.51,0.50] },
+  { id:'illustrative-c', name:'(exemplo) Modelo C', history:[0.26,0.24,0.23,0.22,0.21,0.20] }
+];
+
+const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep'];
+
+let state = {
+  view: 'overview',
+  selectedModelId: null,
+  historyModelId: HISTORY_MODELS[0].id,
+  weights: { cost: 35, promptWindow: 20, multiShot: 15, quality: 30 }
+};
+
+// ---------------------------------------------------------------------------
+// Carregar dado real da API
+// ---------------------------------------------------------------------------
+function fromApi(record) {
+  // A API devolve snake_case (padrão Python); a UI usa camelCase (padrão
+  // JS) — essa função é a única "tradução" entre os dois formatos.
+  return {
+    id: record.model_key,
+    name: record.model_name,
+    provider: record.provider,
+    pricePerSecond: record.price_per_second_usd,
+    pricePerImage: null,       // não coletamos esse dado ainda
+    maxReferenceImages: record.max_reference_images,
+    promptWindowTokens: record.prompt_window_tokens,
+    multiShot: record.multi_shot_support,
+    qualityScore: null,        // temos só quality_notes (texto), não nota numérica
+    latencySeconds: null,      // não coletamos esse dado ainda
+    docUrl: null,
+    notes: record.quality_notes || record.notes || 'Sem notas ainda.'
+  };
+}
+
+async function loadModels() {
+  const tag = document.getElementById('data-status-tag');
+  try {
+    const response = await fetch(API_URL);
+    if (!response.ok) throw new Error('status ' + response.status);
+    const data = await response.json();
+    MODELS = data.map(fromApi);
+    tag.textContent = MODELS.length + ' modelos (dado real)';
+    state.selectedModelId = MODELS[0] ? MODELS[0].id : null;
+    goTo('overview');
+  } catch (err) {
+    tag.textContent = 'Erro ao carregar API';
+    document.getElementById('rank-list').innerHTML =
+      `<p class="status-msg">Não consegui buscar dados de ${API_URL}: ${err}. A API está rodando? (python -m uvicorn market_intel.api:app --reload)</p>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scoring — tolera campos ausentes (null) sem quebrar, contribuindo 0 pro
+// score nessa dimensão em vez de travar o cálculo inteiro.
+// ---------------------------------------------------------------------------
+function computeScores() {
+  const prices = MODELS.map(m => m.pricePerSecond).filter(v => v != null);
+  const prompts = MODELS.map(m => m.promptWindowTokens).filter(v => v != null);
+  const minPrice = Math.min(...prices), maxPrice = Math.max(...prices);
+  const minPrompt = prompts.length ? Math.min(...prompts) : 0;
+  const maxPrompt = prompts.length ? Math.max(...prompts) : 0;
+  const w = state.weights;
+  const totalW = (w.cost + w.promptWindow + w.multiShot + w.quality) || 1;
+  return MODELS.map(m => {
+    const costNorm = (m.pricePerSecond == null || maxPrice === minPrice) ? 0 : (maxPrice - m.pricePerSecond) / (maxPrice - minPrice);
+    const promptNorm = (m.promptWindowTokens == null || maxPrompt === minPrompt) ? 0 : (m.promptWindowTokens - minPrompt) / (maxPrompt - minPrompt);
+    const multiNorm = m.multiShot ? 1 : 0;
+    const qualityNorm = m.qualityScore == null ? 0 : m.qualityScore / 10;
+    const score = ((costNorm * w.cost + promptNorm * w.promptWindow + multiNorm * w.multiShot + qualityNorm * w.quality) / totalW) * 100;
+    return { ...m, score };
+  }).sort((a, b) => b.score - a.score);
+}
+
+function fmt(value, formatter) {
+  return value === null || value === undefined ? '—' : formatter(value);
+}
+
+function buildSparkline(history, width, height, pad) {
+  const min = Math.min(...history), max = Math.max(...history);
+  const range = (max - min) || 1;
+  const stepX = (width - pad * 2) / (history.length - 1);
+  return history.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = pad + (1 - (v - min) / range) * (height - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+}
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+function goTo(view) {
+  state.view = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  render();
+}
+function selectModel(id) { state.selectedModelId = id; goTo('detail'); }
+
+document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => goTo(b.dataset.view)));
+document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.goto)));
+
+// ---------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------
+function render() {
+  if (!MODELS.length) return; // ainda carregando, ou API falhou
+  const ranked = computeScores();
+
+  if (state.view === 'overview') {
+    const withPrice = MODELS.filter(m => m.pricePerSecond != null);
+    const withPrompt = MODELS.filter(m => m.promptWindowTokens != null);
+    const withQuality = MODELS.filter(m => m.qualityScore != null);
+    const cheapest = withPrice.length ? [...withPrice].sort((a,b) => a.pricePerSecond - b.pricePerSecond)[0] : null;
+    const largestPrompt = withPrompt.length ? [...withPrompt].sort((a,b) => b.promptWindowTokens - a.promptWindowTokens)[0] : null;
+    const bestQuality = withQuality.length ? [...withQuality].sort((a,b) => b.qualityScore - a.qualityScore)[0] : null;
+    const multiShotCount = MODELS.filter(m => m.multiShot).length;
+
+    document.getElementById('kpi-grid').innerHTML = `
+      <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div class="tag-outline" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Cheapest / sec</div>
+        <div style="font-family:var(--font-heading);font-size:20px;margin-top:6px">${cheapest ? cheapest.name : '—'}</div>
+        <div class="text-muted" style="font-size:11px;margin-top:4px">${cheapest ? '$' + cheapest.pricePerSecond.toFixed(3) + '/s' : 'sem dado'}</div></div>
+      <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Largest prompt window</div>
+        <div style="font-family:var(--font-heading);font-size:20px;margin-top:6px">${largestPrompt ? largestPrompt.name : '—'}</div>
+        <div class="text-muted" style="font-size:11px;margin-top:4px">${largestPrompt ? largestPrompt.promptWindowTokens + ' tokens' : 'sem dado'}</div></div>
+      <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Best quality score</div>
+        <div style="font-family:var(--font-heading);font-size:20px;margin-top:6px">${bestQuality ? bestQuality.name : '—'}</div>
+        <div class="text-muted" style="font-size:11px;margin-top:4px">${bestQuality ? bestQuality.qualityScore + '/10' : 'sem nota numérica ainda'}</div></div>
+      <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Multi-shot support</div>
+        <div style="font-family:var(--font-heading);font-size:20px;margin-top:6px">${multiShotCount} of ${MODELS.length} models</div>
+        <div class="text-muted" style="font-size:11px;margin-top:4px">Reduces reference-image need</div></div>`;
+
+    document.getElementById('rank-list').innerHTML = ranked.map((m, i) => `
+      <div class="card rank-row" data-id="${m.id}"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div class="rank-badge">${i + 1}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+            <span style="font-family:var(--font-heading);font-size:17px">${m.name}</span>
+            <span class="text-muted" style="font-size:12px">${m.provider}</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <span class="tag tag-accent">${fmt(m.pricePerSecond, v => '$' + v.toFixed(3) + '/s')}</span>
+            <span class="tag tag-accent">${fmt(m.promptWindowTokens, v => v.toLocaleString() + ' tok')}</span>
+            <span class="tag ${m.multiShot ? 'tag-accent' : 'tag-neutral'}">Multi-shot: ${m.multiShot ? 'Yes' : 'No'}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${m.score.toFixed(0)}%"></div></div>
+        </div>
+        <div class="score-box"><div class="num">${m.score.toFixed(1)}</div><div class="text-muted" style="font-size:11px">score / 100</div></div>
+      </div>`).join('');
+    document.querySelectorAll('.rank-row').forEach(el => el.addEventListener('click', () => selectModel(el.dataset.id)));
+  }
+
+  if (state.view === 'table') {
+    document.getElementById('table-body').innerHTML = ranked.map(m => `
+      <tr data-id="${m.id}" style="cursor:pointer">
+        <td style="font-weight:500">${m.name}</td><td>${m.provider}</td>
+        <td class="num">${fmt(m.pricePerSecond, v => '$' + v.toFixed(3))}</td><td class="num">${fmt(m.pricePerImage, v => '$' + v.toFixed(3))}</td>
+        <td class="num">${fmt(m.maxReferenceImages, v => v)}</td><td class="num">${fmt(m.promptWindowTokens, v => v.toLocaleString())}</td>
+        <td><span class="tag ${m.multiShot ? 'tag-accent' : 'tag-neutral'}">${m.multiShot ? 'Yes' : 'No'}</span></td>
+        <td class="num">${fmt(m.qualityScore, v => v.toFixed(1) + '/10')}</td><td class="num">${fmt(m.latencySeconds, v => v + 's')}</td>
+      </tr>`).join('');
+    document.querySelectorAll('#table-body tr').forEach(el => el.addEventListener('click', () => selectModel(el.dataset.id)));
+  }
+
+  if (state.view === 'detail') {
+    const m = ranked.find(x => x.id === state.selectedModelId) || ranked[0];
+    const rank = ranked.findIndex(x => x.id === m.id) + 1;
+    document.getElementById('detail-content').innerHTML = `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:24px"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Rank #${rank}</div>
+        <h2 style="margin-top:2px">${m.name}</h2><div class="text-muted">${m.provider}</div></div>
+        <div class="score-box"><div class="num" style="font-size:36px">${m.score.toFixed(1)}</div><div class="text-muted" style="font-size:12px">score / 100</div></div></div>
+      <div class="spec-grid">
+        <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">$ / second</div><div style="font-family:var(--font-heading);font-size:17px">${fmt(m.pricePerSecond, v => '$' + v.toFixed(3))}</div></div>
+        <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">$ / image</div><div style="font-family:var(--font-heading);font-size:17px">${fmt(m.pricePerImage, v => '$' + v.toFixed(3))}</div></div>
+        <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Max ref images</div><div style="font-family:var(--font-heading);font-size:17px">${fmt(m.maxReferenceImages, v => v)}</div></div>
+        <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Prompt window</div><div style="font-family:var(--font-heading);font-size:17px">${fmt(m.promptWindowTokens, v => v + ' tok')}</div></div>
+        <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Multi-shot</div><div style="font-family:var(--font-heading);font-size:17px">${m.multiShot ? 'Yes' : 'No'}</div></div>
+        <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Quality score</div><div style="font-family:var(--font-heading);font-size:17px">${fmt(m.qualityScore, v => v + '/10')}</div></div>
+        <div class="card"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">Latency</div><div style="font-family:var(--font-heading);font-size:17px">${fmt(m.latencySeconds, v => v + 's')}</div></div>
+      </div>
+      <div style="margin-bottom:24px"><h4>Notes</h4><p style="max-width:640px;white-space:pre-wrap">${m.notes}</p></div>
+      ${m.docUrl ? `<a class="btn" href="${m.docUrl}" target="_blank">View provider docs ↗</a>` : `<button class="btn" disabled>Provider docs not linked yet</button>`}`;
+  }
+
+  if (state.view === 'history') {
+    const select = document.getElementById('history-select');
+    select.innerHTML = HISTORY_MODELS.map(m => `<option value="${m.id}" ${m.id === state.historyModelId ? 'selected' : ''}>${m.name}</option>`).join('');
+    select.onchange = () => { state.historyModelId = select.value; render(); };
+
+    const hm = HISTORY_MODELS.find(m => m.id === state.historyModelId);
+    const points = buildSparkline(hm.history, 640, 220, 34);
+    const minH = Math.min(...hm.history), maxH = Math.max(...hm.history);
+    const monthLabels = MONTHS.map((label, i) => {
+      const x = (34 + i * ((640 - 68) / (MONTHS.length - 1))).toFixed(1);
+      return `<text x="${x}" y="208" font-size="11" fill="currentColor" opacity="0.6">${label}</text>`;
+    }).join('');
+    document.getElementById('history-chart').innerHTML = `
+      <line x1="34" y1="190" x2="606" y2="190" stroke="var(--color-divider)" stroke-width="1"/>
+      <polyline points="${points}" fill="none" stroke="var(--color-accent)" stroke-width="2"/>
+      <text x="4" y="40" font-size="11" fill="currentColor" opacity="0.6">$${maxH.toFixed(3)}</text>
+      <text x="4" y="185" font-size="11" fill="currentColor" opacity="0.6">$${minH.toFixed(3)}</text>
+      ${monthLabels}`;
+
+    document.getElementById('history-rows').innerHTML = MONTHS.map((label, i) => {
+      const price = hm.history[i];
+      const prev = i > 0 ? hm.history[i - 1] : null;
+      const change = prev != null ? (((price - prev) / prev) * 100).toFixed(1) : null;
+      return `<tr><td>${label}</td><td class="num">$${price.toFixed(3)}</td><td class="num">${change != null ? (change > 0 ? '+' : '') + change + '%' : '—'}</td></tr>`;
+    }).join('');
+  }
+
+  if (state.view === 'aggregators') {
+    document.getElementById('aggregators-body').innerHTML = AGGREGATORS.map(a => `
+      <tr><td style="font-weight:500">${a.name}</td>
+        <td><span class="tag ${a.current ? 'tag-accent' : 'tag-outline'}">${a.current ? 'Current' : 'Alternative'}</span></td>
+        <td class="num">${a.overheadPct}%</td><td class="num">${a.uptimePct.toFixed(1)}%</td>
+        <td class="num">${a.modelsSupported} / 7</td><td class="num">${a.addedLatencyMs} ms</td>
+        <td class="text-muted" style="font-size:13px;max-width:220px">${a.notes}</td></tr>`).join('');
+  }
+
+  if (state.view === 'config') {
+    const w = state.weights;
+    const row = (label, key) => `
+      <div><div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span>${label}</span><span class="text-muted" id="val-${key}">${w[key]}</span></div>
+      <input type="range" min="0" max="100" value="${w[key]}" data-key="${key}"/></div>`;
+    document.getElementById('weights-panel').innerHTML = `
+      ${row('Cost per second','cost')}
+      ${row('Prompt window','promptWindow')}
+      ${row('Multi-shot support','multiShot')}
+      ${row('Quality score','quality')}
+      <button class="btn" id="reset-weights">Reset to defaults</button>
+      <p class="text-muted" style="font-size:12px">Weights don't need to total 100 — the score is normalized automatically.</p>`;
+    document.querySelectorAll('#weights-panel input[type=range]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        state.weights[inp.dataset.key] = Number(inp.value);
+        document.getElementById('val-' + inp.dataset.key).textContent = inp.value;
+      });
+    });
+    document.getElementById('reset-weights').addEventListener('click', () => {
+      state.weights = { cost: 35, promptWindow: 20, multiShot: 15, quality: 30 };
+      render();
+    });
+  }
+}
+
+loadModels();
+</script>
+</body>
+</html>

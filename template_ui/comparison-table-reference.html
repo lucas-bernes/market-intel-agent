@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison Table — reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@600&display=swap');
+
+  :root {
+    --color-bg: #f2f2f3;
+    --color-text: #1d1f20;
+    --color-accent: #5980a6;
+    --color-accent-100: #eef6ff;
+    --color-accent-800: #2c455d;
+    --color-neutral-100: #f5f5f8;
+    --color-neutral-800: #424244;
+    --color-divider: rgba(29,31,32,0.16);
+    --font-heading: "Barlow Condensed", system-ui, sans-serif;
+    --font-body: "Barlow", system-ui, sans-serif;
+    --radius-md: 4px;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 15px; }
+  h1, h2, h3 { font-family: var(--font-heading); font-weight: 600; margin: 0; }
+
+  .page { max-width: 1080px; margin: 0 auto; padding: 40px 32px; }
+
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+  .page-header h1 { font-size: 32px; margin-bottom: 6px; }
+  .page-header p { margin: 0; font-size: 14px; color: rgba(29,31,32,0.6); max-width: 560px; }
+
+  .btn { font-family: var(--font-heading); font-weight: 600; font-size: 14px; padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--color-divider); background: transparent; color: var(--color-text); cursor: pointer; }
+  .btn:hover { background: rgba(29,31,32,0.06); }
+
+  .table-wrap { overflow-x: auto; background: transparent; }
+  table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(29,31,32,0.6); padding: 10px; border-bottom: 1px solid var(--color-divider); }
+  th.num, td.num { text-align: right; }
+  td { padding: 10px; border-bottom: 1px solid rgba(29,31,32,0.08); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: rgba(29,31,32,0.04); }
+
+  .tag { display: inline-flex; align-items: center; font-size: 11px; letter-spacing: 0.02em; padding: 3px 10px; border-radius: 3px; }
+  .tag-yes { background: var(--color-accent-100); color: var(--color-accent-800); }
+  .tag-no  { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Comparison table</h1>
+      <p>All models side-by-side, ranked by score under current weights.</p>
+    </div>
+    <button class="btn" id="export-btn">Export ↗</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="comparison-table">
+      <thead>
+        <tr>
+          <th data-sort="name">Model</th>
+          <th data-sort="provider">Provider</th>
+          <th class="num" data-sort="pricePerSecond">$/s</th>
+          <th class="num" data-sort="pricePerImage">$/image</th>
+          <th class="num" data-sort="maxReferenceImages">Ref imgs</th>
+          <th class="num" data-sort="promptWindowTokens">Prompt window</th>
+          <th data-sort="multiShot">Multi-shot</th>
+          <th class="num" data-sort="qualityScore">Quality</th>
+          <th class="num" data-sort="latencySeconds">Latency</th>
+        </tr>
+      </thead>
+      <tbody id="comparison-tbody"><!-- rows injected by renderRows() --></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Replace with the real pipeline output (see market-intel-agent / data/models/*.json).
+  // Illustrative placeholder values only.
+  const MODELS = [
+    { id: 'kling-3',     name: 'Kling 3.0',     provider: 'Kuaishou',         pricePerSecond: 0.35, pricePerImage: 0.045, maxReferenceImages: 4, promptWindowTokens: 2500, multiShot: true,  qualityScore: 8.8, latencySeconds: 45 },
+    { id: 'runway-gen4', name: 'Runway Gen-4',  provider: 'Runway',           pricePerSecond: 0.50, pricePerImage: 0.06,  maxReferenceImages: 1, promptWindowTokens: 1000, multiShot: false, qualityScore: 9.0, latencySeconds: 60 },
+    { id: 'luma-ray3',   name: 'Luma Ray3',     provider: 'Luma AI',          pricePerSecond: 0.28, pricePerImage: 0.04,  maxReferenceImages: 3, promptWindowTokens: 1800, multiShot: true,  qualityScore: 8.2, latencySeconds: 50 },
+    { id: 'pika-22',     name: 'Pika 2.2',      provider: 'Pika Labs',        pricePerSecond: 0.20, pricePerImage: 0.03,  maxReferenceImages: 2, promptWindowTokens: 1200, multiShot: false, qualityScore: 7.5, latencySeconds: 35 },
+    { id: 'hailuo-02',   name: 'Hailuo 02',     provider: 'MiniMax',          pricePerSecond: 0.18, pricePerImage: 0.028, maxReferenceImages: 4, promptWindowTokens: 2000, multiShot: true,  qualityScore: 7.9, latencySeconds: 55 },
+    { id: 'veo-3',       name: 'Veo 3',         provider: 'Google DeepMind',  pricePerSecond: 0.40, pricePerImage: 0.05,  maxReferenceImages: 1, promptWindowTokens: 1500, multiShot: false, qualityScore: 9.3, latencySeconds: 70 },
+    { id: 'sora-turbo',  name: 'Sora Turbo',    provider: 'OpenAI',           pricePerSecond: 0.45, pricePerImage: 0.055, maxReferenceImages: 2, promptWindowTokens: 1600, multiShot: false, qualityScore: 9.1, latencySeconds: 65 }
+  ];
+
+  let sortKey = 'pricePerSecond';
+  let sortAsc = true;
+
+  function renderRows() {
+    const rows = [...MODELS].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
+      return sortAsc ? cmp : -cmp;
+    });
+
+    document.getElementById('comparison-tbody').innerHTML = rows.map(m => `
+      <tr data-id="${m.id}" onclick="onRowClick('${m.id}')">
+        <td style="font-weight:500">${m.name}</td>
+        <td>${m.provider}</td>
+        <td class="num">$${m.pricePerSecond.toFixed(3)}</td>
+        <td class="num">$${m.pricePerImage.toFixed(3)}</td>
+        <td class="num">${m.maxReferenceImages}</td>
+        <td class="num">${m.promptWindowTokens.toLocaleString()}</td>
+        <td><span class="tag ${m.multiShot ? 'tag-yes' : 'tag-no'}">${m.multiShot ? 'Yes' : 'No'}</span></td>
+        <td class="num">${m.qualityScore.toFixed(1)}/10</td>
+        <td class="num">${m.latencySeconds}s</td>
+      </tr>
+    `).join('');
+  }
+
+  // Hook up a real navigation/detail-drawer here.
+  function onRowClick(id) {
+    console.log('open detail for', id);
+  }
+
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      sortAsc = sortKey === key ? !sortAsc : true;
+      sortKey = key;
+      renderRows();
+    });
+  });
+
+  document.getElementById('export-btn').addEventListener('click', () => {
+    console.log('export clicked — wire up CSV/PDF export here');
+  });
+
+  renderRows();
+</script>
+
+</body>
+</html>
