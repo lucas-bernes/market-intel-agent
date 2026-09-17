@@ -1,11 +1,14 @@
 from .db import ModelRecord, SessionLocal
 from .schema import ModelComparison
 
-# Campos de fato: tratamos a primeira fonte que preencheu como confiável e
-# não deixamos uma fonte seguinte (ex: um blog de review) sobrescrever com
-# um número diferente — evita que preço/specs "flutuem" dependendo da ordem
-# em que as páginas foram processadas.
+# Campos de fato (incluindo identidade — nome/provider): tratamos a primeira
+# fonte que preencheu como confiável e não deixamos uma fonte seguinte (ex:
+# uma busca de review que por engano achou um modelo parecido, mas errado)
+# sobrescrever. Sem isso, uma busca desalinhada pode renomear silenciosamente
+# um registro certo pro nome de outro modelo.
 PROTECTED_FIELDS = {
+    "model_name",
+    "provider",
     "price_per_second_usd",
     "max_reference_images",
     "prompt_window_tokens",
