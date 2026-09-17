@@ -16,7 +16,7 @@ function fromApi(record) {
     maxReferenceImages: record.max_reference_images,
     promptWindowTokens: record.prompt_window_tokens,
     multiShot: record.multi_shot_support,
-    qualityScore: null, // temos só quality_notes (texto), não nota numérica ainda
+    qualityScore: record.quality_score,
     latencySeconds: null, // não coletamos esse dado ainda
     docUrl: null,
     notes: record.quality_notes || record.notes || 'Sem notas ainda.',
