@@ -1,4 +1,4 @@
-from .store import load_all_comparisons
+from .store import load_all_comparisons, load_all_providers
 
 MODEL_WIDTH = 24
 PROVIDER_WIDTH = 16
@@ -48,6 +48,33 @@ def generate_report() -> None:
         for c in with_quality:
             print(f"\n{c.model_name}:")
             print(f"  {c.quality_notes}")
+
+
+def generate_provider_report() -> None:
+    providers = load_all_providers()
+
+    if not providers:
+        print("Nenhum provedor encontrado.")
+        return
+
+    header = f"{'Provider':<{PROVIDER_WIDTH}} {'Uptime':>8}"
+    print(header)
+    print("-" * len(header))
+    for p in providers:
+        uptime = "N/A" if p.uptime_pct is None else f"{p.uptime_pct:.1f}%"
+        print(f"{_truncate(p.provider_name, PROVIDER_WIDTH):<{PROVIDER_WIDTH}} {uptime:>8}")
+
+    with_notes = [p for p in providers if p.pricing_notes or p.stability_notes]
+    if with_notes:
+        print()
+        print("Notes:")
+        print("-" * len(header))
+        for p in with_notes:
+            print(f"\n{p.provider_name}:")
+            if p.pricing_notes:
+                print(f"  Pricing: {p.pricing_notes}")
+            if p.stability_notes:
+                print(f"  Stability: {p.stability_notes}")
 
 
 if __name__ == "__main__":

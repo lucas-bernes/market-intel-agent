@@ -48,5 +48,16 @@ class ModelRecord(Base):
     notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
 
-# Cria a tabela no arquivo .db se ela ainda não existir (não faz nada se já existir).
+class ProviderRecord(Base):
+    __tablename__ = "providers"
+
+    provider_key: Mapped[str] = mapped_column(String, primary_key=True)
+    provider_name: Mapped[str] = mapped_column(String)
+    pricing_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    uptime_pct: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    stability_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+
+# Cria as tabelas que ainda não existirem (não faz nada com as que já existem).
 Base.metadata.create_all(engine)

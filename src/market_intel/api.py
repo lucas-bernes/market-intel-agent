@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .db import ModelRecord, SessionLocal
-from .schema import ModelComparisonOut
+from .db import ModelRecord, ProviderRecord, SessionLocal
+from .schema import ModelComparisonOut, ProviderComparisonOut
 
 app = FastAPI(title="Market Intel API")
 
@@ -24,3 +24,10 @@ def list_models() -> list[ModelComparisonOut]:
     with SessionLocal() as session:
         records = session.query(ModelRecord).all()
         return [ModelComparisonOut.model_validate(r) for r in records]
+
+
+@app.get("/api/providers", response_model=list[ProviderComparisonOut])
+def list_providers() -> list[ProviderComparisonOut]:
+    with SessionLocal() as session:
+        records = session.query(ProviderRecord).all()
+        return [ProviderComparisonOut.model_validate(r) for r in records]

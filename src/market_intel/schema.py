@@ -36,3 +36,34 @@ class ModelComparisonOut(ModelComparison):
     model_config = ConfigDict(from_attributes=True)
 
     model_key: str
+
+
+class ProviderComparison(BaseModel):
+    provider_name: str
+    pricing_notes: Optional[str] = Field(
+        default=None,
+        description=(
+            "How this provider's pricing/markup for hosting AI models works, "
+            "if publicly disclosed (e.g. pay-as-you-go, revenue share, "
+            "flat markup over compute cost)."
+        ),
+    )
+    uptime_pct: Optional[float] = Field(
+        default=None,
+        description="Publicly disclosed uptime/SLA percentage (e.g. 99.9), if stated.",
+    )
+    stability_notes: Optional[str] = Field(
+        default=None,
+        description=(
+            "What reviews, status pages, or user reports say about this "
+            "provider's reliability/stability — known outages, incident "
+            "history, or reputation for being flaky vs. rock-solid."
+        ),
+    )
+    notes: Optional[str] = None
+
+
+class ProviderComparisonOut(ProviderComparison):
+    model_config = ConfigDict(from_attributes=True)
+
+    provider_key: str

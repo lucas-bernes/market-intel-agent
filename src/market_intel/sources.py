@@ -20,3 +20,12 @@ def find_review_text(model_name: str) -> str:
         scrape_options={"formats": ["markdown"]},
     )
     return results.web[0].markdown
+
+
+def find_provider_info(provider_name: str) -> str:
+    results = firecrawl.search(
+        f"{provider_name} API pricing uptime reliability review",
+        limit=1,
+        scrape_options={"formats": ["markdown"]},
+    )
+    return results.web[0].markdown
