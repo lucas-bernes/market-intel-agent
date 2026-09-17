@@ -13,6 +13,7 @@ PROTECTED_FIELDS = {
     "max_reference_images",
     "prompt_window_tokens",
     "multi_shot_support",
+    "quality_score",
 }
 
 # Campos de texto livre: aqui o oposto faz sentido — várias fontes podem
@@ -30,6 +31,7 @@ def _record_to_comparison(record: ModelRecord) -> ModelComparison:
         prompt_window_tokens=record.prompt_window_tokens,
         multi_shot_support=record.multi_shot_support,
         quality_notes=record.quality_notes,
+        quality_score=record.quality_score,
         notes=record.notes,
     )
 

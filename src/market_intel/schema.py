@@ -16,6 +16,15 @@ class ModelComparison(BaseModel):
             "hallucination/artifact issues (e.g. distorted hands, drift)."
         ),
     )
+    quality_score: Optional[float] = Field(
+        default=None,
+        description=(
+            "The overall/aggregate quality score explicitly stated in a "
+            "review, normalized to a 0-10 scale (e.g. '8.26/10' -> 8.26). "
+            "Null if no clear overall numeric score is given in the text — "
+            "do not invent or average sub-scores into one."
+        ),
+    )
     notes: Optional[str] = None
 
 

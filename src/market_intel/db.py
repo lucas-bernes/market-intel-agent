@@ -44,6 +44,7 @@ class ModelRecord(Base):
     prompt_window_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     multi_shot_support: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     quality_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    quality_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
 
