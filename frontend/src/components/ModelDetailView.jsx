@@ -23,7 +23,7 @@ export default function ModelDetailView({ ranked, selectedModelId, onBack }) {
 
       <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: '#a78bfa' }}>Rank #{rank}</div>
+          <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: '#b4560c' }}>Rank #{rank}</div>
           <h2 style={{ fontSize: 26, fontWeight: 700, margin: '6px 0 4px' }}>{model.name}</h2>
           <div className="muted" style={{ fontSize: 14 }}>{model.provider}</div>
         </div>
@@ -36,7 +36,7 @@ export default function ModelDetailView({ ranked, selectedModelId, onBack }) {
       <div className="spec-grid">
         {specs.map(([label, value]) => (
           <Card key={label}>
-            <div style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8b8b93', marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8a7660', marginBottom: 6 }}>{label}</div>
             <div style={{ fontSize: 17, fontWeight: 600 }}>{value}</div>
           </Card>
         ))}
@@ -44,7 +44,7 @@ export default function ModelDetailView({ ranked, selectedModelId, onBack }) {
 
       <div style={{ marginBottom: 24 }}>
         <h4 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Notes</h4>
-        <p style={{ maxWidth: 640, margin: 0, color: '#c7c7cc', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{model.notes}</p>
+        <p style={{ maxWidth: 640, margin: 0, color: '#5a4a37', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{model.notes}</p>
       </div>
 
       {model.docUrl ? (

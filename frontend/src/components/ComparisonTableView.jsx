@@ -3,9 +3,9 @@ import { fmt } from '../lib/scoring.js'
 
 function MultiShotTag({ yes }) {
   return yes ? (
-    <span className="chip" style={{ background: 'rgba(34,197,94,.14)', color: '#4ade80' }}>Yes</span>
+    <span className="chip" style={{ background: 'rgba(63,124,44,.16)', color: '#3f7c2c' }}>Yes</span>
   ) : (
-    <span className="chip" style={{ background: 'rgba(255,255,255,.08)', color: '#9a9aa2' }}>No</span>
+    <span className="chip" style={{ background: 'rgba(58,46,33,.16)', color: '#7a6a55' }}>No</span>
   )
 }
 

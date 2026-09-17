@@ -54,13 +54,13 @@ export default function PriceHistoryView() {
 
       <Card style={{ padding: 24, marginBottom: 20 }}>
         <svg width="100%" height="220" viewBox="0 0 640 220">
-          <line x1="34" y1="190" x2="606" y2="190" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
-          <polyline points={points} fill="none" stroke="#2dd4bf" strokeWidth="2" />
-          <text x="4" y="40" fontSize="11" fill="#8b8b93">${maxH.toFixed(3)}</text>
-          <text x="4" y="185" fontSize="11" fill="#8b8b93">${minH.toFixed(3)}</text>
+          <line x1="34" y1="190" x2="606" y2="190" stroke="rgba(58,46,33,.18)" strokeWidth="1" />
+          <polyline points={points} fill="none" stroke="#6b7c2d" strokeWidth="2" />
+          <text x="4" y="40" fontSize="11" fill="#8a7660">${maxH.toFixed(3)}</text>
+          <text x="4" y="185" fontSize="11" fill="#8a7660">${minH.toFixed(3)}</text>
           {MONTHS.map((label, i) => {
             const x = (34 + i * ((640 - 68) / (MONTHS.length - 1))).toFixed(1)
-            return <text key={label} x={x} y="208" fontSize="11" fill="#8b8b93">{label}</text>
+            return <text key={label} x={x} y="208" fontSize="11" fill="#8a7660">{label}</text>
           })}
         </svg>
       </Card>
@@ -74,7 +74,7 @@ export default function PriceHistoryView() {
               const prev = i > 0 ? model.history[i - 1] : null
               const change = prev != null ? (((price - prev) / prev) * 100).toFixed(1) : null
               const isDown = change != null && Number(change) <= 0
-              const color = change == null ? '#8b8b93' : isDown ? '#4ade80' : '#f87171'
+              const color = change == null ? '#8a7660' : isDown ? '#3f7c2c' : '#a1341a'
               return (
                 <tr key={label}>
                   <td>{label}</td>

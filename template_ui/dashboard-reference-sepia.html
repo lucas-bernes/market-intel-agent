@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Intelligence Agent — dashboard reference (sepia)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f1e8d8; color: #3a2e21; font-family: 'Inter', system-ui, sans-serif; font-size: 15px; }
+  h2, h4 { margin: 0; }
+  a { color: #b4560c; }
+
+  .app-shell { display: grid; grid-template-columns: 216px 1fr; min-height: 100vh; }
+  .topnav { grid-column: 1 / -1; border-bottom: 1px solid rgba(58,46,33,.16); padding: 16px 28px; gap: 16px; display: flex; align-items: center; background: #e7dcc4; }
+  .brand { font-weight: 700; font-size: 26px; letter-spacing: -0.01em; }
+  .pill { white-space: nowrap; font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(180,83,9,.4); color: #b4560c; background: rgba(180,83,9,.12); }
+  .muted { color: #8a7660; }
+  .btn { background: #e9dcc0; color: #3a2e21; border: 1px solid rgba(58,46,33,.18); border-radius: 8px; padding: 9px 16px; font-family: inherit; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .btn-primary { background: #3a2e21; color: #f1e8d8; border: none; }
+  .btn-ghost { background: transparent; border: none; color: #b4560c; font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; }
+
+  .sidebar { display: flex; flex-direction: column; gap: 2px; padding: 22px 12px; border-right: 1px solid rgba(58,46,33,.16); }
+  .kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 12px 10px; color: #9c8a71; }
+  .navbtn { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; cursor: pointer; border: none; background: transparent; font: 14px 'Inter', sans-serif; color: #7a6a55; text-align: left; width: 100%; transition: background .12s ease, color .12s ease; }
+  .navbtn:hover { background: rgba(58,46,33,.1); }
+  .navbtn.active { background: rgba(180,83,9,.15); color: #8a3f0a; font-weight: 600; }
+  .navbtn svg { flex-shrink: 0; }
+
+  main { padding: 36px 44px; min-width: 0; overflow: auto; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .card { background: #fbf5e7; border: 1px solid rgba(58,46,33,.16); border-radius: 14px; padding: 16px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-bottom: 20px; }
+  .kpi-card { background: #fbf5e7; border: 1px solid rgba(58,46,33,.16); border-radius: 12px; padding: 13px 16px; }
+  .kpi-icon { width: 22px; height: 22px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  .rank-row { background: #fbf5e7; border: 1px solid rgba(58,46,33,.16); border-radius: 14px; padding: 18px 22px; cursor: pointer; display: flex; align-items: center; gap: 20px; transition: border-color .15s ease, background .15s ease; }
+  .rank-row:hover { border-color: rgba(58,46,33,.3); background: #e9dcc0; }
+  .rank-badge { width: 32px; height: 32px; border-radius: 9px; background: rgba(180,83,9,.16); color: #b4560c; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; }
+  .bar-track { height: 6px; background: rgba(58,46,33,.16); border-radius: 3px; overflow: hidden; margin-top: 10px; max-width: 320px; }
+  .bar-fill { height: 100%; background: #a4501c; }
+  .score-box { text-align: right; flex-shrink: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #8a7660; padding: 14px 16px; border-bottom: 1px solid rgba(58,46,33,.16); }
+  th.num, td.num { text-align: right; }
+  td { padding: 12px 16px; border-bottom: 1px solid rgba(58,46,33,.1); }
+  tbody tr:hover { background: rgba(58,46,33,.08); }
+
+  .spec-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; margin-bottom: 24px; }
+  select, input[type=range] { font-family: inherit; }
+  select { width: 100%; min-height: 38px; padding: 6px 10px; font-size: 14px; color: #3a2e21; background: #fbf5e7; border: 1px solid rgba(58,46,33,.18); border-radius: 8px; }
+  input[type=range] { width: 100%; accent-color: #a4501c; }
+
+  @media (max-width: 760px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { grid-row: 1; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid rgba(58,46,33,.16); }
+    .navlabel, .kicker { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="topnav">
+    <div class="brand">Market Intelligence Agent</div>
+    <span class="pill">Preview data</span>
+    <span class="muted" style="font-size:12px">Updated Sep 2026</span>
+    <button class="btn btn-primary" style="margin-left:auto">Export ↗</button>
+  </div>
+
+  <aside class="sidebar">
+    <div class="kicker">Views</div>
+    <button class="navbtn" data-view="overview">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="9" cy="9" r="2"/></svg>
+      <span class="navlabel">Ranking</span>
+    </button>
+    <button class="navbtn" data-view="table">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="14" height="12" rx="1"/><line x1="2" y1="8" x2="16" y2="8"/><line x1="9" y1="3" x2="9" y2="15"/></svg>
+      <span class="navlabel">Comparison table</span>
+    </button>
+    <button class="navbtn" data-view="detail">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="12" height="14" rx="1"/><line x1="6" y1="6" x2="13" y2="6"/><line x1="6" y1="9" x2="13" y2="9"/><line x1="6" y1="12" x2="11" y2="12"/></svg>
+      <span class="navlabel">Model detail</span>
+    </button>
+    <button class="navbtn" data-view="history">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2,14 7,9 10,11 16,4"/><line x1="2" y1="16" x2="16" y2="16"/></svg>
+      <span class="navlabel">Price history</span>
+    </button>
+    <button class="navbtn" data-view="aggregators">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="12" height="3"/><rect x="3" y="7.5" width="12" height="3"/><rect x="3" y="13" width="12" height="3"/></svg>
+      <span class="navlabel">API aggregators</span>
+    </button>
+    <button class="navbtn" data-view="config">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="5" x2="16" y2="5"/><circle cx="11" cy="5" r="2"/><line x1="2" y1="9" x2="16" y2="9"/><circle cx="6" cy="9" r="2"/><line x1="2" y1="13" x2="16" y2="13"/><circle cx="13" cy="13" r="2"/></svg>
+      <span class="navlabel">Ranking weights</span>
+    </button>
+  </aside>
+
+  <main>
+    <section class="view" id="view-overview">
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div id="rank-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+
+    <section class="view" id="view-table">
+      <h2 style="font-size:26px;font-weight:700;margin-bottom:6px">Comparison table</h2>
+      <p class="muted" style="font-size:14px;margin-bottom:20px">All models side-by-side, ranked order.</p>
+      <div class="card" style="padding:6px;overflow-x:auto">
+        <table style="min-width:760px">
+          <thead><tr><th>Model</th><th>Provider</th><th class="num">$/s</th><th class="num">$/image</th><th class="num">Ref imgs</th><th class="num">Prompt window</th><th>Multi-shot</th><th class="num">Quality</th><th class="num">Latency</th></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="view-detail">
+      <button class="btn-ghost" style="margin-bottom:16px" data-goto="overview">← Back to ranking</button>
+      <div id="detail-content"></div>
+    </section>
+
+    <section class="view" id="view-history">
+      <h2 style="font-size:26px;font-weight:700;margin-bottom:6px">Price history</h2>
+      <p class="muted" style="font-size:14px;margin-bottom:20px">Six-month $/second trend, per model.</p>
+      <div style="max-width:280px;margin-bottom:20px">
+        <label class="muted" style="display:block;font-size:12px;margin-bottom:6px">Model</label>
+        <select id="history-select"></select>
+      </div>
+      <div class="card" style="padding:24px;margin-bottom:20px">
+        <svg width="100%" height="220" viewBox="0 0 640 220" id="history-chart"></svg>
+      </div>
+      <div class="card" style="padding:6px;overflow-x:auto">
+        <table style="max-width:460px">
+          <thead><tr><th>Month</th><th class="num">$/second</th><th class="num">Change</th></tr></thead>
+          <tbody id="history-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="view-aggregators">
+      <h2 style="font-size:26px;font-weight:700;margin-bottom:6px">API aggregators</h2>
+      <p class="muted" style="font-size:14px;max-width:600px;margin-bottom:20px">Unified-API alternatives to fal.ai, our current provider.</p>
+      <div class="card" style="padding:6px;overflow-x:auto">
+        <table style="min-width:640px">
+          <thead><tr><th>Aggregator</th><th></th><th class="num">Overhead</th><th class="num">Uptime</th><th class="num">Coverage</th><th class="num">Added latency</th><th>Notes</th></tr></thead>
+          <tbody id="aggregators-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="view-config">
+      <h2 style="font-size:26px;font-weight:700;margin-bottom:6px">Ranking weights</h2>
+      <p class="muted" style="font-size:14px;max-width:520px;margin-bottom:24px">Adjust how much each factor counts toward the ranking score. Changes apply immediately.</p>
+      <div style="display:flex;flex-direction:column;gap:22px;max-width:480px" id="weights-panel"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Data — replace with real pipeline output (market-intel-agent / data/models/*.json)
+// ---------------------------------------------------------------------------
+const MODELS = [
+  { id:'kling-3', name:'Kling 3.0', provider:'Kuaishou', pricePerSecond:0.35, pricePerImage:0.045, maxReferenceImages:4, promptWindowTokens:2500, multiShot:true, qualityScore:8.8, latencySeconds:45, docUrl:'https://klingai.com', notes:'Strong multi-shot support for character consistency across scenes, but shot transitions occasionally hallucinate extra elements.', history:[0.52,0.48,0.44,0.40,0.37,0.35] },
+  { id:'runway-gen4', name:'Runway Gen-4', provider:'Runway', pricePerSecond:0.50, pricePerImage:0.06, maxReferenceImages:1, promptWindowTokens:1000, multiShot:false, qualityScore:9.0, latencySeconds:60, docUrl:'https://runwayml.com', notes:'Highest single-take realism in the set. No multi-shot — needs more source images per scene.', history:[0.60,0.58,0.55,0.53,0.51,0.50] },
+  { id:'luma-ray3', name:'Luma Ray3', provider:'Luma AI', pricePerSecond:0.28, pricePerImage:0.04, maxReferenceImages:3, promptWindowTokens:1800, multiShot:true, qualityScore:8.2, latencySeconds:50, docUrl:'https://lumalabs.ai', notes:'Balanced cost and multi-shot support. Quality trails Runway and Veo slightly on lighting consistency.', history:[0.38,0.35,0.33,0.31,0.29,0.28] },
+  { id:'pika-22', name:'Pika 2.2', provider:'Pika Labs', pricePerSecond:0.20, pricePerImage:0.03, maxReferenceImages:2, promptWindowTokens:1200, multiShot:false, qualityScore:7.5, latencySeconds:35, docUrl:'https://pika.art', notes:'Cheapest single-take option with the fastest render time. Prompt window is tight.', history:[0.26,0.24,0.23,0.22,0.21,0.20] },
+  { id:'hailuo-02', name:'Hailuo 02', provider:'MiniMax', pricePerSecond:0.18, pricePerImage:0.028, maxReferenceImages:4, promptWindowTokens:2000, multiShot:true, qualityScore:7.9, latencySeconds:55, docUrl:'https://hailuoai.video', notes:'Lowest cost per second with multi-shot support. Realism lags the top tier.', history:[0.24,0.22,0.21,0.20,0.19,0.18] },
+  { id:'veo-3', name:'Veo 3', provider:'Google DeepMind', pricePerSecond:0.40, pricePerImage:0.05, maxReferenceImages:1, promptWindowTokens:1500, multiShot:false, qualityScore:9.3, latencySeconds:70, docUrl:'https://deepmind.google', notes:'Top overall quality score in the set. No multi-shot and the highest latency.', history:[0.55,0.52,0.48,0.45,0.42,0.40] },
+  { id:'sora-turbo', name:'Sora Turbo', provider:'OpenAI', pricePerSecond:0.45, pricePerImage:0.055, maxReferenceImages:2, promptWindowTokens:1600, multiShot:false, qualityScore:9.1, latencySeconds:65, docUrl:'https://openai.com/sora', notes:'Close second to Veo on realism, with a slightly larger prompt window.', history:[0.60,0.57,0.53,0.50,0.47,0.45] }
+];
+
+const AGGREGATORS = [
+  { id:'fal', name:'fal.ai', current:true, overheadPct:8, uptimePct:99.5, modelsSupported:6, addedLatencyMs:120, notes:'Current provider. Fastest to add day-one releases.' },
+  { id:'replicate', name:'Replicate', current:false, overheadPct:12, uptimePct:99.7, modelsSupported:5, addedLatencyMs:200, notes:'Broadest catalog, slower to onboard new video releases.' },
+  { id:'together', name:'Together AI', current:false, overheadPct:6, uptimePct:99.2, modelsSupported:3, addedLatencyMs:90, notes:'Lowest overhead, limited video-model coverage today.' },
+  { id:'baseten', name:'Baseten', current:false, overheadPct:10, uptimePct:99.6, modelsSupported:4, addedLatencyMs:150, notes:'Best fit as a self-hosted fallback.' }
+];
+
+const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep'];
+
+let state = {
+  view: 'overview',
+  selectedModelId: 'kling-3',
+  historyModelId: 'kling-3',
+  weights: { cost: 35, promptWindow: 20, multiShot: 15, quality: 30 }
+};
+
+function computeScores() {
+  const prices = MODELS.map(m => m.pricePerSecond);
+  const prompts = MODELS.map(m => m.promptWindowTokens);
+  const minPrice = Math.min(...prices), maxPrice = Math.max(...prices);
+  const minPrompt = Math.min(...prompts), maxPrompt = Math.max(...prompts);
+  const w = state.weights;
+  const totalW = (w.cost + w.promptWindow + w.multiShot + w.quality) || 1;
+  return MODELS.map(m => {
+    const costNorm = maxPrice === minPrice ? 1 : (maxPrice - m.pricePerSecond) / (maxPrice - minPrice);
+    const promptNorm = maxPrompt === minPrompt ? 1 : (m.promptWindowTokens - minPrompt) / (maxPrompt - minPrompt);
+    const multiNorm = m.multiShot ? 1 : 0;
+    const qualityNorm = m.qualityScore / 10;
+    const score = ((costNorm * w.cost + promptNorm * w.promptWindow + multiNorm * w.multiShot + qualityNorm * w.quality) / totalW) * 100;
+    return { ...m, score };
+  }).sort((a, b) => b.score - a.score);
+}
+
+function buildSparkline(history, width, height, pad) {
+  const min = Math.min(...history), max = Math.max(...history);
+  const range = (max - min) || 1;
+  const stepX = (width - pad * 2) / (history.length - 1);
+  return history.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = pad + (1 - (v - min) / range) * (height - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+}
+
+function goTo(view) {
+  state.view = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  render();
+}
+function selectModel(id) { state.selectedModelId = id; goTo('detail'); }
+
+document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => goTo(b.dataset.view)));
+document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.goto)));
+
+function multiShotChip(m) {
+  return m.multiShot
+    ? `<span class="chip" style="background:rgba(63,124,44,.16);color:#3f7c2c">Multi-shot: Yes</span>`
+    : `<span class="chip" style="background:rgba(58,46,33,.16);color:#7a6a55">Multi-shot: No</span>`;
+}
+function multiShotTag(m) {
+  return m.multiShot
+    ? `<span class="chip" style="background:rgba(63,124,44,.16);color:#3f7c2c">Yes</span>`
+    : `<span class="chip" style="background:rgba(58,46,33,.16);color:#7a6a55">No</span>`;
+}
+
+function render() {
+  const ranked = computeScores();
+
+  if (state.view === 'overview') {
+    const cheapest = [...MODELS].sort((a,b) => a.pricePerSecond - b.pricePerSecond)[0];
+    const largestPrompt = [...MODELS].sort((a,b) => b.promptWindowTokens - a.promptWindowTokens)[0];
+    const bestQuality = [...MODELS].sort((a,b) => b.qualityScore - a.qualityScore)[0];
+    const multiShotCount = MODELS.filter(m => m.multiShot).length;
+
+    document.getElementById('kpi-grid').innerHTML = `
+      <div class="kpi-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="kpi-icon" style="background:rgba(180,83,9,.16);color:#b4560c"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12l3-4 3 2 3-5 3 3"/></svg></div>
+        <div style="font-size:11px" class="muted">Cheapest / sec</div></div>
+        <div style="font-size:16px;font-weight:600">${cheapest.name}</div>
+        <div class="muted" style="font-size:11px;margin-top:2px">$${cheapest.pricePerSecond.toFixed(3)}/s</div></div>
+      <div class="kpi-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="kpi-icon" style="background:rgba(180,131,17,.18);color:#a4820f"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="2" y1="7" x2="14" y2="7"/></svg></div>
+        <div style="font-size:11px" class="muted">Largest prompt window</div></div>
+        <div style="font-size:16px;font-weight:600">${largestPrompt.name}</div>
+        <div class="muted" style="font-size:11px;margin-top:2px">${largestPrompt.promptWindowTokens} tokens</div></div>
+      <div class="kpi-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="kpi-icon" style="background:rgba(107,124,45,.18);color:#6b7c2d"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg></div>
+        <div style="font-size:11px" class="muted">Best quality score</div></div>
+        <div style="font-size:16px;font-weight:600">${bestQuality.name}</div>
+        <div class="muted" style="font-size:11px;margin-top:2px">${bestQuality.qualityScore}/10</div></div>
+      <div class="kpi-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="kpi-icon" style="background:rgba(161,98,7,.18);color:#a16207"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="9" width="3" height="5"/><rect x="6.5" y="5" width="3" height="9"/><rect x="11" y="2" width="3" height="12"/></svg></div>
+        <div style="font-size:11px" class="muted">Multi-shot support</div></div>
+        <div style="font-size:16px;font-weight:600">${multiShotCount} of 7 models</div>
+        <div class="muted" style="font-size:11px;margin-top:2px">Reduces reference-image need</div></div>`;
+
+    document.getElementById('rank-list').innerHTML = ranked.map((m, i) => `
+      <div class="rank-row" data-id="${m.id}">
+        <div class="rank-badge">${i + 1}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+            <span style="font-size:16px;font-weight:600">${m.name}</span>
+            <span class="muted" style="font-size:12px">${m.provider}</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <span class="chip" style="background:rgba(180,131,17,.16);color:#8f6b12">$${m.pricePerSecond.toFixed(3)}/s</span>
+            <span class="chip" style="background:rgba(107,124,45,.16);color:#5c6b26">${m.promptWindowTokens.toLocaleString()} tok</span>
+            ${multiShotChip(m)}
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${m.score.toFixed(0)}%"></div></div>
+        </div>
+        <div class="score-box"><div style="font-size:22px;font-weight:700">${m.score.toFixed(1)}</div><div class="muted" style="font-size:11px">score / 100</div></div>
+      </div>`).join('');
+    document.querySelectorAll('.rank-row').forEach(el => el.addEventListener('click', () => selectModel(el.dataset.id)));
+  }
+
+  if (state.view === 'table') {
+    document.getElementById('table-body').innerHTML = ranked.map(m => `
+      <tr data-id="${m.id}" style="cursor:pointer">
+        <td style="font-weight:600">${m.name}</td><td class="muted">${m.provider}</td>
+        <td class="num">$${m.pricePerSecond.toFixed(3)}</td><td class="num">$${m.pricePerImage.toFixed(3)}</td>
+        <td class="num">${m.maxReferenceImages}</td><td class="num">${m.promptWindowTokens.toLocaleString()}</td>
+        <td>${multiShotTag(m)}</td><td class="num">${m.qualityScore.toFixed(1)}/10</td><td class="num">${m.latencySeconds}s</td>
+      </tr>`).join('');
+    document.querySelectorAll('#table-body tr').forEach(el => el.addEventListener('click', () => selectModel(el.dataset.id)));
+  }
+
+  if (state.view === 'detail') {
+    const m = ranked.find(x => x.id === state.selectedModelId) || ranked[0];
+    const rank = ranked.findIndex(x => x.id === m.id) + 1;
+    document.getElementById('detail-content').innerHTML = `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:24px">
+        <div><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#b4560c">Rank #${rank}</div>
+        <h2 style="font-size:26px;font-weight:700;margin:6px 0 4px">${m.name}</h2><div class="muted" style="font-size:14px">${m.provider}</div></div>
+        <div class="score-box"><div style="font-size:34px;font-weight:700">${m.score.toFixed(1)}</div><div class="muted" style="font-size:12px">score / 100</div></div></div>
+      <div class="spec-grid">
+        <div class="card"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7660;margin-bottom:6px">$ / second</div><div style="font-size:17px;font-weight:600">$${m.pricePerSecond.toFixed(3)}</div></div>
+        <div class="card"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7660;margin-bottom:6px">$ / image</div><div style="font-size:17px;font-weight:600">$${m.pricePerImage.toFixed(3)}</div></div>
+        <div class="card"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7660;margin-bottom:6px">Max ref images</div><div style="font-size:17px;font-weight:600">${m.maxReferenceImages}</div></div>
+        <div class="card"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7660;margin-bottom:6px">Prompt window</div><div style="font-size:17px;font-weight:600">${m.promptWindowTokens} tok</div></div>
+        <div class="card"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7660;margin-bottom:6px">Multi-shot</div><div style="font-size:17px;font-weight:600">${m.multiShot ? 'Yes' : 'No'}</div></div>
+        <div class="card"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7660;margin-bottom:6px">Quality score</div><div style="font-size:17px;font-weight:600">${m.qualityScore}/10</div></div>
+        <div class="card"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7660;margin-bottom:6px">Latency</div><div style="font-size:17px;font-weight:600">${m.latencySeconds}s</div></div>
+      </div>
+      <div class="card" style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;margin-bottom:24px">
+        <svg width="260" height="60" viewBox="0 0 260 60"><polyline points="${buildSparkline(m.history,260,60,6)}" fill="none" stroke="#6b7c2d" stroke-width="2"/></svg>
+        <div><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8a7660">6-month price trend</div>
+        <button class="btn-ghost" data-goto-history="${m.id}">View full history →</button></div></div>
+      <div style="margin-bottom:24px"><h4 style="font-size:15px;font-weight:600;margin-bottom:8px">Notes</h4><p style="max-width:640px;margin:0;color:#5a4a37;line-height:1.6">${m.notes}</p></div>
+      <a class="btn btn-primary" style="display:inline-block;text-decoration:none" href="${m.docUrl}" target="_blank">View provider docs ↗</a>`;
+    const histBtn = document.querySelector('[data-goto-history]');
+    if (histBtn) histBtn.addEventListener('click', () => { state.historyModelId = m.id; goTo('history'); });
+  }
+
+  if (state.view === 'history') {
+    const select = document.getElementById('history-select');
+    select.innerHTML = MODELS.map(m => `<option value="${m.id}" ${m.id === state.historyModelId ? 'selected' : ''}>${m.name}</option>`).join('');
+    select.onchange = () => { state.historyModelId = select.value; render(); };
+
+    const hm = MODELS.find(m => m.id === state.historyModelId);
+    const points = buildSparkline(hm.history, 640, 220, 34);
+    const minH = Math.min(...hm.history), maxH = Math.max(...hm.history);
+    const monthLabels = MONTHS.map((label, i) => {
+      const x = (34 + i * ((640 - 68) / (MONTHS.length - 1))).toFixed(1);
+      return `<text x="${x}" y="208" font-size="11" fill="#8a7660">${label}</text>`;
+    }).join('');
+    document.getElementById('history-chart').innerHTML = `
+      <line x1="34" y1="190" x2="606" y2="190" stroke="rgba(58,46,33,.18)" stroke-width="1"/>
+      <polyline points="${points}" fill="none" stroke="#6b7c2d" stroke-width="2"/>
+      <text x="4" y="40" font-size="11" fill="#8a7660">$${maxH.toFixed(3)}</text>
+      <text x="4" y="185" font-size="11" fill="#8a7660">$${minH.toFixed(3)}</text>
+      ${monthLabels}`;
+
+    document.getElementById('history-rows').innerHTML = MONTHS.map((label, i) => {
+      const price = hm.history[i];
+      const prev = i > 0 ? hm.history[i - 1] : null;
+      const change = prev != null ? (((price - prev) / prev) * 100).toFixed(1) : null;
+      const isDown = change != null && Number(change) <= 0;
+      const color = change == null ? '#8a7660' : (isDown ? '#3f7c2c' : '#a1341a');
+      return `<tr><td>${label}</td><td class="num">$${price.toFixed(3)}</td><td class="num" style="color:${color}">${change != null ? (change > 0 ? '+' : '') + change + '%' : '—'}</td></tr>`;
+    }).join('');
+  }
+
+  if (state.view === 'aggregators') {
+    document.getElementById('aggregators-body').innerHTML = AGGREGATORS.map(a => `
+      <tr><td style="font-weight:600">${a.name}</td>
+        <td>${a.current
+          ? `<span class="chip" style="background:rgba(180,83,9,.15);color:#8a3f0a">Current</span>`
+          : `<span class="chip" style="border:1px solid rgba(58,46,33,.22);color:#7a6a55">Alternative</span>`}</td>
+        <td class="num">${a.overheadPct}%</td><td class="num">${a.uptimePct.toFixed(1)}%</td>
+        <td class="num">${a.modelsSupported} / 7</td><td class="num">${a.addedLatencyMs} ms</td>
+        <td class="muted" style="font-size:13px;max-width:220px">${a.notes}</td></tr>`).join('');
+  }
+
+  if (state.view === 'config') {
+    const w = state.weights;
+    const row = (label, key) => `
+      <div><div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span>${label}</span><span class="muted" id="val-${key}">${w[key]}</span></div>
+      <input type="range" min="0" max="100" value="${w[key]}" data-key="${key}"/></div>`;
+    document.getElementById('weights-panel').innerHTML = `
+      ${row('Cost per second','cost')}
+      ${row('Prompt window','promptWindow')}
+      ${row('Multi-shot support','multiShot')}
+      ${row('Quality score','quality')}
+      <button class="btn" id="reset-weights">Reset to defaults</button>
+      <p class="muted" style="font-size:12px;margin:0">Weights don't need to total 100 — the score is normalized automatically.</p>`;
+    document.querySelectorAll('#weights-panel input[type=range]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        state.weights[inp.dataset.key] = Number(inp.value);
+        document.getElementById('val-' + inp.dataset.key).textContent = inp.value;
+      });
+    });
+    document.getElementById('reset-weights').addEventListener('click', () => {
+      state.weights = { cost: 35, promptWindow: 20, multiShot: 15, quality: 30 };
+      render();
+    });
+  }
+}
+
+goTo('overview');
+</script>
+</body>
+</html>

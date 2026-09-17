@@ -33,9 +33,9 @@ export default function ApiAggregatorsView() {
                 <td style={{ fontWeight: 600 }}>{a.name}</td>
                 <td>
                   {a.current ? (
-                    <span className="chip" style={{ background: 'rgba(139,92,246,.14)', color: '#c4b5fd' }}>Current</span>
+                    <span className="chip" style={{ background: 'rgba(180,83,9,.15)', color: '#8a3f0a' }}>Current</span>
                   ) : (
-                    <span className="chip" style={{ border: '1px solid rgba(255,255,255,.14)', color: '#9a9aa2' }}>Alternative</span>
+                    <span className="chip" style={{ border: '1px solid rgba(58,46,33,.22)', color: '#7a6a55' }}>Alternative</span>
                   )}
                 </td>
                 <td className="num">{a.overheadPct}%</td>

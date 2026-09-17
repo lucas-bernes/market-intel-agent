@@ -2,9 +2,9 @@ import { fmt } from '../lib/scoring.js'
 
 function MultiShotChip({ yes }) {
   return yes ? (
-    <span className="chip" style={{ background: 'rgba(34,197,94,.14)', color: '#4ade80' }}>Multi-shot: Yes</span>
+    <span className="chip" style={{ background: 'rgba(63,124,44,.16)', color: '#3f7c2c' }}>Multi-shot: Yes</span>
   ) : (
-    <span className="chip" style={{ background: 'rgba(255,255,255,.08)', color: '#9a9aa2' }}>Multi-shot: No</span>
+    <span className="chip" style={{ background: 'rgba(58,46,33,.16)', color: '#7a6a55' }}>Multi-shot: No</span>
   )
 }
 
@@ -27,28 +27,28 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
   const kpis = [
     {
       label: 'Cheapest / sec',
-      color: ['rgba(139,92,246,.15)', '#a78bfa'],
+      color: ['rgba(180,83,9,.16)', '#b4560c'],
       icon: <path d="M2 12l3-4 3 2 3-5 3 3" />,
       value: cheapest ? cheapest.name : '—',
       sub: cheapest ? `$${cheapest.pricePerSecond.toFixed(3)}/s` : 'sem dado',
     },
     {
       label: 'Largest prompt window',
-      color: ['rgba(59,130,246,.15)', '#60a5fa'],
+      color: ['rgba(180,131,17,.18)', '#a4820f'],
       icon: <><rect x="2" y="2" width="12" height="12" rx="2" /><line x1="2" y1="7" x2="14" y2="7" /></>,
       value: largestPrompt ? largestPrompt.name : '—',
       sub: largestPrompt ? `${largestPrompt.promptWindowTokens} tokens` : 'sem dado',
     },
     {
       label: 'Best quality score',
-      color: ['rgba(20,184,166,.15)', '#2dd4bf'],
+      color: ['rgba(107,124,45,.18)', '#6b7c2d'],
       icon: <><circle cx="8" cy="8" r="6" /><path d="M8 5v3l2 2" /></>,
       value: bestQuality ? bestQuality.name : '—',
       sub: bestQuality ? `${bestQuality.qualityScore}/10` : 'sem nota numérica ainda',
     },
     {
       label: 'Multi-shot support',
-      color: ['rgba(245,165,36,.15)', '#f5a524'],
+      color: ['rgba(161,98,7,.18)', '#a16207'],
       icon: <><rect x="2" y="9" width="3" height="5" /><rect x="6.5" y="5" width="3" height="9" /><rect x="11" y="2" width="3" height="12" /></>,
       value: `${multiShotCount} of ${ranked.length} models`,
       sub: 'Reduces reference-image need',
@@ -94,8 +94,8 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
                 <span className="muted" style={{ fontSize: 12 }}>{m.provider}</span>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                <span className="chip" style={{ background: 'rgba(59,130,246,.14)', color: '#7db4fb' }}>{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}/s`)}</span>
-                <span className="chip" style={{ background: 'rgba(20,184,166,.14)', color: '#4fd6c4' }}>{fmt(m.promptWindowTokens, (v) => `${v.toLocaleString()} tok`)}</span>
+                <span className="chip" style={{ background: 'rgba(180,131,17,.16)', color: '#8f6b12' }}>{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}/s`)}</span>
+                <span className="chip" style={{ background: 'rgba(107,124,45,.16)', color: '#5c6b26' }}>{fmt(m.promptWindowTokens, (v) => `${v.toLocaleString()} tok`)}</span>
                 <MultiShotChip yes={m.multiShot} />
               </div>
               <div className="bar-track"><div className="bar-fill" style={{ width: `${m.score.toFixed(0)}%` }}></div></div>
