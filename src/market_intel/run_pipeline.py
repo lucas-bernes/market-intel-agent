@@ -37,7 +37,9 @@ def run_pipeline(url: str, model_key: str) -> None:
 def run_quality_pipeline(model_name: str, model_key: str) -> None:
     url, raw_text = find_review_text(model_name)
     extraction = extract_model_comparison(raw_text)
-    verified = verify_model_extraction(extraction, raw_text, model_name)
+    # A identidade esperada vem da chave (curta e estável), não da consulta de busca,
+    # que pode ter texto extra (empresa, ano, aspas).
+    verified = verify_model_extraction(extraction, raw_text, model_key)
     changes = save_model_comparison(verified.comparison, model_key, url, verified.evidence)
     _print_summary(verified, changes, url)
     generate_report()
@@ -46,7 +48,7 @@ def run_quality_pipeline(model_name: str, model_key: str) -> None:
 def run_provider_pipeline(provider_name: str, provider_key: str) -> None:
     url, raw_text = find_provider_info(provider_name)
     extraction = extract_provider_comparison(raw_text)
-    verified = verify_provider_extraction(extraction, raw_text, provider_name)
+    verified = verify_provider_extraction(extraction, raw_text, provider_key)
     changes = save_provider_comparison(verified.comparison, provider_key, url, verified.evidence)
     _print_summary(verified, changes, url)
     generate_provider_report()

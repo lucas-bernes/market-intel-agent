@@ -140,3 +140,9 @@ def test_verify_uptime_rejects_bad_quote():
     result = verify_uptime(99.9, "99.9% uptime", "fal.ai status page 99.5% uptime", "fal.ai")
     assert result.comparison.uptime_pct is None
     assert "uptime_pct" in result.rejected
+
+
+@pytest.mark.parametrize("key, name", [("baseten", "Baseten"), ("together-ai", "Together AI"), ("fal-ai", "fal.ai")])
+def test_provider_keys_match_real_names(key, name):
+    page = f"{name} status page"
+    assert verify_provider_extraction(ProviderExtraction(provider_name=name), page, key).comparison.provider_name == name
