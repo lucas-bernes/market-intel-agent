@@ -17,5 +17,11 @@ dependencies = [
     "psycopg2-binary",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
