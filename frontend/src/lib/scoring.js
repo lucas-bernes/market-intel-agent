@@ -38,3 +38,10 @@ export function computeScores(models, weights) {
 export function fmt(value, formatter) {
   return value === null || value === undefined ? '—' : formatter(value);
 }
+
+// Corta texto longo (parágrafos extraídos de review/pricing) pra não
+// esticar a linha de uma tabela até virar um bloco de texto gigante.
+export function truncateText(text, maxLength = 160) {
+  if (!text) return '—';
+  return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
+}

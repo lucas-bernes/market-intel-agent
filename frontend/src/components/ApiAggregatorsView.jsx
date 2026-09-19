@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Card from './Card.jsx'
 import { fetchProviders } from '../lib/api.js'
-import { fmt } from '../lib/scoring.js'
+import { fmt, truncateText } from '../lib/scoring.js'
 
 export default function ApiAggregatorsView() {
   const [providers, setProviders] = useState([])
@@ -36,8 +36,8 @@ export default function ApiAggregatorsView() {
                 <tr key={p.id}>
                   <td style={{ fontWeight: 600 }}>{p.name}</td>
                   <td className="num">{fmt(p.uptimePct, (v) => `${v.toFixed(2)}%`)}</td>
-                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }}>{p.pricingNotes || '—'}</td>
-                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }}>{p.stabilityNotes || '—'}</td>
+                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.pricingNotes || ''}>{truncateText(p.pricingNotes)}</td>
+                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.stabilityNotes || ''}>{truncateText(p.stabilityNotes)}</td>
                 </tr>
               ))}
             </tbody>
