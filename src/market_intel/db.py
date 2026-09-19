@@ -1,8 +1,9 @@
 import os
+from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
-from sqlalchemy import Boolean, Float, Integer, String, create_engine
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, UniqueConstraint, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 load_dotenv()
@@ -63,6 +64,25 @@ class ProviderRecord(Base):
     stability_summary: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     stability_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+
+class FieldEvidenceRecord(Base):
+    # Uma linha por (entidade, campo): a prova do valor ATUAL — a frase
+    # literal da página, de qual URL e quando foi coletada. É uma tabela
+    # separada (e não colunas em models/providers) porque cada campo tem
+    # sua própria fonte e data.
+    __tablename__ = "field_evidence"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String)  # "model" | "provider"
+    entity_key: Mapped[str] = mapped_column(String)
+    field: Mapped[str] = mapped_column(String)
+    value: Mapped[str] = mapped_column(String)
+    quote: Mapped[str] = mapped_column(String)
+    source_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    collected_at: Mapped[datetime] = mapped_column(DateTime)
+
+    __table_args__ = (UniqueConstraint("entity_type", "entity_key", "field"),)
 
 
 # Cria as tabelas que ainda não existirem (não faz nada com as que já existem).

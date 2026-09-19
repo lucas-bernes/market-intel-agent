@@ -103,3 +103,48 @@ def test_providers_use_the_same_merge_rules():
     assert saved.uptime_pct == 99.99
     assert "Pay as you go" in saved.pricing_notes
     assert "Per token" in saved.pricing_notes
+
+
+def test_verified_field_can_update_a_protected_value_and_stores_evidence():
+    from market_intel.store import load_evidence
+
+    save_model_comparison(
+        ModelComparison(model_name="Seedance 2.0", provider="ByteDance", price_per_second_usd=0.3024),
+        "seedance-2.0",
+    )
+    changes = save_model_comparison(
+        ModelComparison(model_name="Seedance 2.0", provider="ByteDance", price_per_second_usd=0.3034),
+        "seedance-2.0",
+        source_url="https://example.com/llms.txt",
+        evidence={"price_per_second_usd": "charged $0.3034/second"},
+    )
+
+    [saved] = load_all_comparisons()
+    assert saved.price_per_second_usd == 0.3034
+    assert changes == [("price_per_second_usd", 0.3024, 0.3034)]
+    ev = load_evidence()[("model", "seedance-2.0")]["price_per_second_usd"]
+    assert ev["quote"] == "charged $0.3034/second"
+    assert ev["source_url"] == "https://example.com/llms.txt"
+
+
+def test_verified_evidence_never_renames_identity():
+    save_model_comparison(ModelComparison(model_name="Kling 3.0", provider="Kling AI"), "kling-3.0")
+    save_model_comparison(
+        ModelComparison(model_name="Outro", provider="Outra"), "kling-3.0",
+        evidence={"model_name": "x"},
+    )
+    [saved] = load_all_comparisons()
+    assert saved.model_name == "Kling 3.0"
+
+
+def test_evidence_is_not_attached_to_a_value_that_was_not_written():
+    from market_intel.store import load_evidence
+
+    save_model_comparison(
+        ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=0.11), "kling-3.0"
+    )
+    # Sem evidência a proteção segura o valor antigo; nenhuma prova é criada.
+    save_model_comparison(
+        ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=9.0), "kling-3.0"
+    )
+    assert load_evidence() == {}

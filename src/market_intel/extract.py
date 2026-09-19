@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from .schema import ModelComparison, ProviderComparison
+from .schema import ModelExtraction, ProviderExtraction
 
 load_dotenv()
 
@@ -47,23 +47,33 @@ def _extract(raw_text: str, schema_cls: type[T], tool_name: str, description: st
     return schema_cls(**dados)
 
 
-def extract_model_comparison(raw_text: str) -> ModelComparison:
+# Regra anexada a toda extração de fatos: qualidade > cobertura. Um campo
+# vazio é aceitável; um campo errado não é.
+_ACCURACY_RULES = (
+    "Accuracy rules: extract only what the text states about the model/provider "
+    "named in it. Use null for anything not explicitly stated — never infer, "
+    "convert units, compute or guess. Every numeric/boolean fact needs a "
+    "verbatim quote in `evidence`."
+)
+
+
+def extract_model_comparison(raw_text: str) -> ModelExtraction:
     return _extract(
         raw_text,
-        ModelComparison,
+        ModelExtraction,
         "extract_model_comparison",
         "Extrai dados de comparação de um modelo de IA a partir de um texto",
-        "Extraia os dados de comparação do seguinte texto:",
+        f"Extraia os dados de comparação do seguinte texto. {_ACCURACY_RULES}",
     )
 
 
-def extract_provider_comparison(raw_text: str) -> ProviderComparison:
+def extract_provider_comparison(raw_text: str) -> ProviderExtraction:
     return _extract(
         raw_text,
-        ProviderComparison,
+        ProviderExtraction,
         "extract_provider_comparison",
         "Extrai dados de comparação de um provedor de API de IA a partir de um texto",
-        "Extraia os dados de comparação do provedor de API a partir do seguinte texto:",
+        f"Extraia os dados de comparação do provedor de API a partir do seguinte texto. {_ACCURACY_RULES}",
     )
 
 
@@ -81,6 +91,14 @@ class _StatusUptime(BaseModel):
     component_used: Optional[str] = Field(
         default=None,
         description="Name of the status-page component the number came from.",
+    )
+    evidence_quote: Optional[str] = Field(
+        default=None,
+        description=(
+            "The line copied VERBATIM from the page that shows the uptime "
+            "percentage for that component (must contain the number). Null "
+            "if api_uptime_pct is null."
+        ),
     )
 
 

@@ -30,7 +30,8 @@ def test_extract_model_comparison_parses_tool_call(monkeypatch):
 
     result = extract.extract_model_comparison("texto qualquer")
 
-    assert result == ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=0.11)
+    assert (result.model_name, result.provider, result.price_per_second_usd) == ("Kling 3.0", "Kling AI", 0.11)
+    assert result.evidence == []
     # A tool é forçada (não "auto"), senão o modelo poderia responder em texto solto.
     assert fake.last_kwargs["tool_choice"]["function"]["name"] == "extract_model_comparison"
 

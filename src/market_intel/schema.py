@@ -45,6 +45,44 @@ class ModelComparison(BaseModel):
     notes: Optional[str] = None
 
 
+class FieldEvidence(BaseModel):
+    # Uma "prova" por campo: a frase COPIADA do texto que justifica o valor.
+    # O código (verify.py) confere depois se a frase existe mesmo no texto e
+    # se o número está nela — o LLM não é confiável sozinho.
+    field: str = Field(description="Exact name of the field this quote supports, e.g. 'price_per_second_usd'.")
+    quote: str = Field(
+        description=(
+            "Sentence or table row copied VERBATIM (character for character) "
+            "from the text, containing the value. Never paraphrase or compute."
+        ),
+    )
+
+
+_EVIDENCE_RULES = (
+    "For EVERY non-null value among {fields}, add one item with the field name "
+    "and a verbatim quote from the text that states that value. If you cannot "
+    "quote it word for word, leave the field null — do not derive, convert, "
+    "average or guess values. Silence in the text means null, never false/0."
+)
+
+
+class ModelExtraction(ModelComparison):
+    # Só existe na etapa de extração: ModelComparison continua sendo o formato
+    # que é salvo no banco e servido pela API.
+    evidence: list[FieldEvidence] = Field(
+        default_factory=list,
+        description=_EVIDENCE_RULES.format(
+            fields="price_per_second_usd, max_reference_images, prompt_max_chars, multi_shot_support, quality_score"
+        ),
+    )
+
+
+class EvidenceOut(BaseModel):
+    quote: str
+    source_url: Optional[str] = None
+    collected_at: str
+
+
 class ModelComparisonOut(ModelComparison):
     # Só existe na saída da API, não durante a extração via LLM — é o
     # identificador estável usado como chave no banco (o antigo nome de
@@ -53,6 +91,8 @@ class ModelComparisonOut(ModelComparison):
     model_config = ConfigDict(from_attributes=True)
 
     model_key: str
+    # Prova de cada campo verificado; campo ausente aqui = sem evidência.
+    evidence: dict[str, EvidenceOut] = Field(default_factory=dict)
 
 
 class ProviderComparison(BaseModel):
@@ -98,7 +138,15 @@ class ProviderComparison(BaseModel):
     notes: Optional[str] = None
 
 
+class ProviderExtraction(ProviderComparison):
+    evidence: list[FieldEvidence] = Field(
+        default_factory=list,
+        description=_EVIDENCE_RULES.format(fields="uptime_pct"),
+    )
+
+
 class ProviderComparisonOut(ProviderComparison):
     model_config = ConfigDict(from_attributes=True)
 
     provider_key: str
+    evidence: dict[str, EvidenceOut] = Field(default_factory=dict)
