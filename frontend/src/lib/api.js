@@ -17,6 +17,7 @@ function fromApiModel(record) {
     qualityScore: record.quality_score,
     docUrl: null,
     notes: record.quality_notes || record.notes || 'Sem notas ainda.',
+    evidence: record.evidence || {},
   };
 }
 
@@ -30,6 +31,7 @@ function fromApiProvider(record) {
     pricingNotes: record.pricing_notes,
     stabilityNotes: record.stability_notes,
     notes: record.notes,
+    evidence: record.evidence || {},
   };
 }
 

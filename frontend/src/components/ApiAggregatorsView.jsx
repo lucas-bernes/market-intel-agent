@@ -35,7 +35,12 @@ export default function ApiAggregatorsView() {
               {providers.map((p) => (
                 <tr key={p.id}>
                   <td style={{ fontWeight: 600 }}>{p.name}</td>
-                  <td className="num">{fmt(p.uptimePct, (v) => `${v.toFixed(2)}%`)}</td>
+                  <td className="num" title={p.evidence.uptime_pct ? `"${p.evidence.uptime_pct.quote}"` : (p.uptimePct != null ? 'Valor sem citação verificada da fonte' : '')}>
+                    {fmt(p.uptimePct, (v) => `${v.toFixed(2)}%`)}
+                    {p.uptimePct != null && (p.evidence.uptime_pct?.source_url
+                      ? <a href={p.evidence.uptime_pct.source_url} target="_blank" rel="noreferrer" style={{ marginLeft: 6, color: '#a3e635' }}>↗</a>
+                      : <span className="muted" style={{ marginLeft: 6 }}>*</span>)}
+                  </td>
                   <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.pricingNotes || ''}>{p.pricingSummary || truncateText(p.pricingNotes, 80)}</td>
                   <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.stabilityNotes || ''}>{p.stabilitySummary || truncateText(p.stabilityNotes, 80)}</td>
                 </tr>
@@ -46,7 +51,7 @@ export default function ApiAggregatorsView() {
       )}
       {providers.length > 0 && (
         <p className="muted" style={{ fontSize: 12, marginTop: 12, maxWidth: 600 }}>
-          Uptime = valor medido na página de status oficial (90 dias), só quando a plataforma publica um número. "—" = não publicado (ex.: Replicate mostra só dias com incidente). Passe o mouse sobre Pricing/Stability para ver o texto completo.
+          Uptime = valor medido na página de status oficial (90 dias), só quando a plataforma publica um número. "—" = não publicado (ex.: Replicate mostra só dias com incidente). Passe o mouse sobre Pricing/Stability para ver o texto completo. ↗ = fonte verificada (link); * = valor ainda sem citação verificada.
         </p>
       )}
     </section>
