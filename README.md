@@ -2,32 +2,37 @@
 
 A pipeline and dashboard that compares image-to-video AI models (Kling 3.0 and its competitors) and the API providers that host them (fal.ai and alternatives), so cost, quality and limits can be seen side by side.
 
-Web pages (pricing, docs, reviews) are collected with FireCrawl, an LLM (DeepSeek) turns the raw text into structured records, and the results are stored in Postgres, served by a FastAPI backend and shown in a React dashboard.
+Web pages (pricing, docs, reviews) are collected with FireCrawl, an LLM (DeepSeek) turns the raw text into structured records, a verification step checks them, and the results are stored in Postgres, served by a FastAPI backend and shown in a React dashboard.
 
 ## What it does
 
-- **Models**: price per second, reference-image limit, multi-shot support, review summary (`quality_notes`) and, when a review states one, a numeric `quality_score`.
-- **API providers**: pricing structure, published uptime and stability notes.
-- **Dashboard**: weighted ranking (weights adjustable live), comparison table, model detail, provider table.
-- **Merge rules**: the same model can be fed by several sources. Facts (name, provider, price, specs, score) are first-write-wins so a later mismatched source cannot overwrite them; free-text fields (`quality_notes`, `notes`) accumulate.
+- **Models**: price per second, reference-image limit, prompt limit (in **characters**), multi-shot support, review summary (`quality_notes`) and, when a review states one, a numeric `quality_score`.
+- **API providers**: short, objective pricing and stability summaries, and `uptime_pct` = the **measured** 90-day API uptime from the provider's official status page (marketing/SLA claims are kept out of that field).
+- **Dashboard**: weighted ranking (weights adjustable live), comparison table, model detail, provider table. Every value shows its source and collection date, or is marked "not verified" (`*`).
+- **Data quality**: nothing the LLM extracts is trusted on its own. See [Data quality](#data-quality).
+- **Merge rules**: the same model can be fed by several sources. Identity (name, provider) is first-write-wins, so a later mismatched source cannot rename a record. Other facts are also first-write-wins, except that a newly **verified** value (one with evidence) may update them, and the change is printed. Free-text fields (`quality_notes`, `notes`) accumulate.
 
 ## Architecture
 
 ```
-FireCrawl (scrape / search)  ->  DeepSeek (structured extraction)  ->  Postgres
-                                                                         |
-                                            React dashboard  <-  FastAPI (/api/models, /api/providers)
+FireCrawl (scrape / search) -> DeepSeek (extraction + quotes) -> verify.py -> Postgres
+                                                                                |
+                                       React dashboard  <-  FastAPI (/api/models, /api/providers)
 ```
+
+FireCrawl only *collects* the raw page text. DeepSeek *extracts* fields from it. `verify.py` then checks the extraction in plain code before anything is saved. Plain-text pages (`.txt`, `.json`, `.md`, e.g. fal.ai's `llms.txt`) are downloaded with a normal HTTP request, so they cost no FireCrawl credits.
 
 | Path | Role |
 |---|---|
-| `src/market_intel/sources.py` | Fetch a URL or search the web via FireCrawl |
+| `src/market_intel/sources.py` | Fetch a URL or search the web (FireCrawl, or plain HTTP for text pages) |
 | `src/market_intel/extract.py` | LLM extraction with forced tool use, validated by Pydantic |
-| `src/market_intel/schema.py` | Pydantic models (`ModelComparison`, `ProviderComparison`) |
-| `src/market_intel/store.py` | Persistence and merge rules |
-| `src/market_intel/db.py` | SQLAlchemy models and engine |
+| `src/market_intel/schema.py` | Pydantic models (`ModelComparison`, `ProviderComparison`, and the `*Extraction` variants that carry evidence quotes) |
+| `src/market_intel/verify.py` | Deterministic verification of extracted facts (quotes, numbers, ranges, target identity) |
+| `src/market_intel/store.py` | Persistence, merge rules and evidence storage |
+| `src/market_intel/db.py` | SQLAlchemy models (`models`, `providers`, `field_evidence`) and engine |
 | `src/market_intel/api.py` | FastAPI app |
 | `src/market_intel/run_pipeline.py` | CLI entry point for the collection pipeline |
+| `scripts/export_static.py` | Builds a single self-contained HTML snapshot of the dashboard |
 | `frontend/` | React (Vite) dashboard |
 | `tests/` | pytest suite (SQLite, no network or API keys needed) |
 
@@ -49,17 +54,35 @@ docker compose up -d --build
 Run inside the API container:
 
 ```bash
-# Scrape one page for a model
-docker compose exec api python -m market_intel.run_pipeline url "https://fal.ai/models/fal-ai/veo3.1/image-to-video" veo-3.1
+# Model page (plain-text pages like llms.txt need no FireCrawl credits)
+docker compose exec api python -m market_intel.run_pipeline url "https://fal.ai/models/bytedance/seedance-2.0/image-to-video/llms.txt" seedance-2.0
 
 # Search the web for a review of a model
 docker compose exec api python -m market_intel.run_pipeline quality '"Veo 3.1" Google DeepMind video generation review 2026' veo-3.1
 
 # Search the web for an API provider
 docker compose exec api python -m market_intel.run_pipeline provider '"Baseten.co" model inference platform pricing uptime' baseten
+
+# Measured uptime from an official status page: <status URL> <provider name> <provider_key>
+docker compose exec api python -m market_intel.run_pipeline status https://status.fal.ai fal.ai fal-ai
 ```
 
-The last argument is a stable key that identifies the record, so several sources can be merged into the same model.
+The last argument is a stable key that identifies the record, so several sources can be merged into the same model. It is also the **expected identity**: if the page or the extraction is about a different model/provider than the key, the whole collection is rejected and nothing is saved.
+
+Each run prints the source URL, the fields that passed (`OK`), the ones dropped and why (`DESCARTADO`), and any stored value that changed (`ATUALIZADO`).
+
+Prefer official sources: fal.ai's `llms.txt` per model, the creators' API docs for limits, and official status pages for uptime.
+
+### Sharing a snapshot
+
+To show the dashboard to someone without running anything, build a single HTML file with the current data embedded:
+
+```bash
+cd frontend && npm run build && cd ..
+python scripts/export_static.py      # -> export/market-intel-snapshot.html (git-ignored)
+```
+
+It opens by double-click, needs no server or internet, and shows the snapshot date in the top bar.
 
 ### Tests
 
@@ -68,11 +91,33 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## Data quality
+
+The LLM can misread a page, so its output is checked before saving (`src/market_intel/verify.py`):
+
+1. **Evidence quote required.** For each price, image limit, prompt limit, multi-shot flag, quality score and uptime, the LLM must copy the exact sentence that states it. No quote means the field stays empty.
+2. **The quote must exist** in the collected text (whitespace, case and markdown noise are ignored).
+3. **The number must be in the quote**, and the quote must be about the right thing (a "per 1000 tokens" price is never accepted as a per-second price).
+4. **Plausible range** (e.g. price 0.001-5 USD/s, uptime 90-100%).
+5. **Right target.** The extracted name must match the requested key (version numbers must be equal; "Sora 2 Pro" is not "Sora 2"), and the name must appear in the text.
+
+A failed field is dropped, never guessed. The approved quote, source URL and collection date are stored in the `field_evidence` table and exposed as `evidence` in the API; the dashboard shows them.
+
+What this does **not** guarantee: that the page itself is correct or current (prices change often, so check the collection date), or which pricing tier or resolution a quoted price refers to (for example, Seedance 2.0 is $0.3034/s at 720p and $0.682/s at 1080p on fal.ai).
+
 ## Known limitations
 
-- **Search can hit the wrong target.** Automatic search occasionally returns a page about a different model or provider (e.g. Seedance 1.0 instead of 2.0). Identity fields are protected against overwrite, but free-text notes from a wrong page still get appended, so results need a human check.
-- **Some fields are empty by nature.** `prompt_window_tokens` is empty for every model (video platforms don't document it like text LLMs do); `quality_score` exists only when a review states an overall score; `$/image` and latency are not collected.
+- **Search can hit the wrong target.** Automatic search occasionally returns a page about a different model or provider (e.g. Seedance 1.0 instead of 2.0). The identity check rejects such collections, but free-text notes are not fact-checked, so they still need a human read.
+- **Most existing values are unverified.** Only values collected through the verified pipeline carry evidence; earlier data shows as "not verified" (`*`) until it is re-collected.
+- **Some fields are empty by nature.**
+  - `prompt_max_chars` is empty for Seedance 2.0/2.5: neither ByteDance nor fal.ai publishes it. The Kling 3.0 (3,072) and Wan 2.2 (800) limits come from the creators' own API docs and may differ on hosting platforms such as fal.ai.
+  - `quality_score` exists only when a review states an overall score on the same rubric (missing for Sora 2, Seedance 2.5 and Wan 2.2).
+  - Replicate has no uptime % because its status page only lists incident days.
+  - `$/image` and latency are not collected.
+- **`max_reference_images` is not uniform.** Most models count start/end frames (1-2); Seedance 2.5 counts reference-mode inputs (50). Do not compare them directly.
+- **The Luma Ray 3.2 record mixes sources**: specs from the Ray 2 page with a Ray 3.2 review.
+- **The ranking treats missing data as 0** for that criterion, which penalises models whose platform simply does not publish it.
 - **Price history and provider overhead/latency** are not collected. The dashboard's "Price history" tab shows illustrative data only and is labelled as such.
 - **No scheduled refresh yet**: collection is run by hand.
-- **No migrations tool**: adding a column needs a manual `ALTER TABLE` (Alembic would be the next step).
+- **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically.
 - **Not deployed**: it runs locally with Docker Compose.
