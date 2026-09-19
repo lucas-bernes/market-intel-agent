@@ -222,3 +222,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 open_vscode.bat
+
+# Generated static snapshot for sharing
+/export/

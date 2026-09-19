@@ -6,7 +6,7 @@ import ModelDetailView from './components/ModelDetailView.jsx'
 import PriceHistoryView from './components/PriceHistoryView.jsx'
 import ApiAggregatorsView from './components/ApiAggregatorsView.jsx'
 import RankingWeightsView, { DEFAULT_WEIGHTS } from './components/RankingWeightsView.jsx'
-import { fetchModels } from './lib/api.js'
+import { fetchModels, getSnapshot } from './lib/api.js'
 import { computeScores } from './lib/scoring.js'
 
 export default function App() {
@@ -40,7 +40,11 @@ export default function App() {
       <div className="topnav">
         <div className="brand">Market Intelligence Agent</div>
         <span className="pill">
-          {loadError ? 'Erro ao carregar API' : models.length ? `${models.length} modelos (dado real)` : 'Loading...'}
+          {loadError
+            ? 'Erro ao carregar API'
+            : models.length
+              ? `${models.length} modelos (dado real)${getSnapshot() ? ` · snapshot de ${new Date(getSnapshot().generated_at).toLocaleDateString()}` : ''}`
+              : 'Loading...'}
         </span>
         <button className="btn btn-primary" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>Export ↗</button>
       </div>

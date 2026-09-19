@@ -1,6 +1,8 @@
 import { fmt } from '../lib/scoring.js'
 
 function MultiShotChip({ yes }) {
+  // null = a fonte não diz; mostrar "No" afirmaria algo que não sabemos.
+  if (yes == null) return <span className="chip" style={{ background: 'rgba(180,255,200,.1)', color: '#79857f' }}>Multi-shot: —</span>
   return yes ? (
     <span className="chip" style={{ background: 'rgba(74,222,128,.15)', color: '#4ade80' }}>Multi-shot: Yes</span>
   ) : (

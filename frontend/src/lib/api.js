@@ -35,7 +35,15 @@ function fromApiProvider(record) {
   };
 }
 
+// Modo "snapshot": o HTML exportado (scripts/export_static.py) embute os dados
+// em window.__SNAPSHOT__, então funciona offline, sem a API rodando.
+export function getSnapshot() {
+  return typeof window !== 'undefined' ? window.__SNAPSHOT__ : undefined;
+}
+
 export async function fetchModels() {
+  const snapshot = getSnapshot();
+  if (snapshot) return snapshot.models.map(fromApiModel);
   const response = await fetch(`${API_BASE_URL}/api/models`);
   if (!response.ok) {
     throw new Error(`API respondeu status ${response.status}`);
@@ -45,6 +53,8 @@ export async function fetchModels() {
 }
 
 export async function fetchProviders() {
+  const snapshot = getSnapshot();
+  if (snapshot) return snapshot.providers.map(fromApiProvider);
   const response = await fetch(`${API_BASE_URL}/api/providers`);
   if (!response.ok) {
     throw new Error(`API respondeu status ${response.status}`);
