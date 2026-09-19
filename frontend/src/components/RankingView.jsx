@@ -10,14 +10,14 @@ function MultiShotChip({ yes }) {
 
 export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) {
   const withPrice = ranked.filter((m) => m.pricePerSecond != null)
-  const withPrompt = ranked.filter((m) => m.promptWindowTokens != null)
+  const withPrompt = ranked.filter((m) => m.promptMaxChars != null)
   const withQuality = ranked.filter((m) => m.qualityScore != null)
 
   const cheapest = withPrice.length
     ? [...withPrice].sort((a, b) => a.pricePerSecond - b.pricePerSecond)[0]
     : null
   const largestPrompt = withPrompt.length
-    ? [...withPrompt].sort((a, b) => b.promptWindowTokens - a.promptWindowTokens)[0]
+    ? [...withPrompt].sort((a, b) => b.promptMaxChars - a.promptMaxChars)[0]
     : null
   const bestQuality = withQuality.length
     ? [...withQuality].sort((a, b) => b.qualityScore - a.qualityScore)[0]
@@ -33,11 +33,11 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
       sub: cheapest ? `$${cheapest.pricePerSecond.toFixed(3)}/s` : 'sem dado',
     },
     {
-      label: 'Largest prompt window',
+      label: 'Largest prompt limit',
       color: ['rgba(34,211,238,.15)', '#22d3ee'],
       icon: <><rect x="2" y="2" width="12" height="12" rx="2" /><line x1="2" y1="7" x2="14" y2="7" /></>,
       value: largestPrompt ? largestPrompt.name : '—',
-      sub: largestPrompt ? `${largestPrompt.promptWindowTokens} tokens` : 'sem dado',
+      sub: largestPrompt ? `${largestPrompt.promptMaxChars.toLocaleString()} characters` : 'sem dado',
     },
     {
       label: 'Best quality score',
@@ -61,7 +61,7 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
         <div>
           <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Ranking</h2>
           <p className="muted" style={{ fontSize: 14, maxWidth: 560 }}>
-            Scored by cost per second, prompt window, multi-shot support and quality (quando disponível).
+            Scored by cost per second, prompt limit, multi-shot support and quality (quando disponível).
           </p>
         </div>
         <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={onAdjustWeights}>
@@ -95,7 +95,7 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 <span className="chip" style={{ background: 'rgba(34,211,238,.14)', color: '#67e8f9' }}>{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}/s`)}</span>
-                <span className="chip" style={{ background: 'rgba(234,179,8,.14)', color: '#fde047' }}>{fmt(m.promptWindowTokens, (v) => `${v.toLocaleString()} tok`)}</span>
+                <span className="chip" style={{ background: 'rgba(234,179,8,.14)', color: '#fde047' }}>{fmt(m.promptMaxChars, (v) => `${v.toLocaleString()} chars`)}</span>
                 <MultiShotChip yes={m.multiShot} />
               </div>
               <div className="bar-track"><div className="bar-fill" style={{ width: `${m.score.toFixed(0)}%` }}></div></div>

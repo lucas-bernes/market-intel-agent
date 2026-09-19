@@ -2,7 +2,7 @@ const DEFAULT_WEIGHTS = { cost: 35, promptWindow: 20, multiShot: 15, quality: 30
 
 const ROWS = [
   ['Cost per second', 'cost'],
-  ['Prompt window', 'promptWindow'],
+  ['Prompt limit', 'promptWindow'],
   ['Multi-shot support', 'multiShot'],
   ['Quality score', 'quality'],
 ]

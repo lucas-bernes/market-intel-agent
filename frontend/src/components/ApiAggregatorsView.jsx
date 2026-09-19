@@ -28,7 +28,7 @@ export default function ApiAggregatorsView() {
           <table style={{ minWidth: 640 }}>
             <thead>
               <tr>
-                <th>Provider</th><th className="num">Uptime</th><th>Pricing</th><th>Stability</th>
+                <th>Provider</th><th className="num">Uptime (90d)</th><th>Pricing</th><th>Stability</th>
               </tr>
             </thead>
             <tbody>
@@ -36,13 +36,18 @@ export default function ApiAggregatorsView() {
                 <tr key={p.id}>
                   <td style={{ fontWeight: 600 }}>{p.name}</td>
                   <td className="num">{fmt(p.uptimePct, (v) => `${v.toFixed(2)}%`)}</td>
-                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.pricingNotes || ''}>{truncateText(p.pricingNotes)}</td>
-                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.stabilityNotes || ''}>{truncateText(p.stabilityNotes)}</td>
+                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.pricingNotes || ''}>{p.pricingSummary || truncateText(p.pricingNotes, 80)}</td>
+                  <td className="muted" style={{ fontSize: 13, maxWidth: 260 }} title={p.stabilityNotes || ''}>{p.stabilitySummary || truncateText(p.stabilityNotes, 80)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Card>
+      )}
+      {providers.length > 0 && (
+        <p className="muted" style={{ fontSize: 12, marginTop: 12, maxWidth: 600 }}>
+          Uptime = valor medido na página de status oficial (90 dias), só quando a plataforma publica um número. "—" = não publicado (ex.: Replicate mostra só dias com incidente). Passe o mouse sobre Pricing/Stability para ver o texto completo.
+        </p>
       )}
     </section>
   )

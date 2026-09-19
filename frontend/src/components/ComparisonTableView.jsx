@@ -20,9 +20,9 @@ export default function ComparisonTableView({ ranked, onSelectModel }) {
         <table style={{ minWidth: 760 }}>
           <thead>
             <tr>
-              <th>Model</th><th>Provider</th><th className="num">$/s</th><th className="num">$/image</th>
-              <th className="num">Ref imgs</th><th className="num">Prompt window</th><th>Multi-shot</th>
-              <th className="num">Quality</th><th className="num">Latency</th>
+              <th>Model</th><th>Provider</th><th className="num">$/s</th>
+              <th className="num">Ref imgs</th><th className="num">Prompt limit</th><th>Multi-shot</th>
+              <th className="num">Quality</th>
             </tr>
           </thead>
           <tbody>
@@ -31,17 +31,18 @@ export default function ComparisonTableView({ ranked, onSelectModel }) {
                 <td style={{ fontWeight: 600 }}>{m.name}</td>
                 <td className="muted">{m.provider}</td>
                 <td className="num">{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}`)}</td>
-                <td className="num">{fmt(m.pricePerImage, (v) => `$${v.toFixed(3)}`)}</td>
                 <td className="num">{fmt(m.maxReferenceImages, (v) => v)}</td>
-                <td className="num">{fmt(m.promptWindowTokens, (v) => v.toLocaleString())}</td>
+                <td className="num">{fmt(m.promptMaxChars, (v) => v.toLocaleString())}</td>
                 <td><MultiShotTag yes={m.multiShot} /></td>
                 <td className="num">{fmt(m.qualityScore, (v) => `${v.toFixed(1)}/10`)}</td>
-                <td className="num">{fmt(m.latencySeconds, (v) => `${v}s`)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
+      <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+        "—" = a plataforma não publica esse dado (ex.: limite de prompt do Kling e Seedance) ou ainda não há fonte confiável. Não estimamos valores.
+      </p>
     </section>
   )
 }

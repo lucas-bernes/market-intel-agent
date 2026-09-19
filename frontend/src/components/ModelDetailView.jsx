@@ -7,12 +7,10 @@ export default function ModelDetailView({ ranked, selectedModelId, onBack }) {
 
   const specs = [
     ['$ / second', fmt(model.pricePerSecond, (v) => `$${v.toFixed(3)}`)],
-    ['$ / image', fmt(model.pricePerImage, (v) => `$${v.toFixed(3)}`)],
     ['Max ref images', fmt(model.maxReferenceImages, (v) => v)],
-    ['Prompt window', fmt(model.promptWindowTokens, (v) => `${v} tok`)],
+    ['Prompt limit', fmt(model.promptMaxChars, (v) => `${v.toLocaleString()} chars`)],
     ['Multi-shot', model.multiShot ? 'Yes' : 'No'],
     ['Quality score', fmt(model.qualityScore, (v) => `${v}/10`)],
-    ['Latency', fmt(model.latencySeconds, (v) => `${v}s`)],
   ]
 
   return (

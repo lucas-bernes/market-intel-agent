@@ -11,12 +11,10 @@ function fromApiModel(record) {
     name: record.model_name,
     provider: record.provider,
     pricePerSecond: record.price_per_second_usd,
-    pricePerImage: null, // não coletamos esse dado ainda
     maxReferenceImages: record.max_reference_images,
-    promptWindowTokens: record.prompt_window_tokens,
+    promptMaxChars: record.prompt_max_chars,
     multiShot: record.multi_shot_support,
     qualityScore: record.quality_score,
-    latencySeconds: null, // não coletamos esse dado ainda
     docUrl: null,
     notes: record.quality_notes || record.notes || 'Sem notas ainda.',
   };
@@ -27,6 +25,8 @@ function fromApiProvider(record) {
     id: record.provider_key,
     name: record.provider_name,
     uptimePct: record.uptime_pct,
+    pricingSummary: record.pricing_summary,
+    stabilitySummary: record.stability_summary,
     pricingNotes: record.pricing_notes,
     stabilityNotes: record.stability_notes,
     notes: record.notes,

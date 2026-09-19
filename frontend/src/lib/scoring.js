@@ -2,7 +2,7 @@
 // (null) contribuem 0 pro score nessa dimensão, em vez de quebrar o cálculo.
 export function computeScores(models, weights) {
   const prices = models.map((m) => m.pricePerSecond).filter((v) => v != null);
-  const prompts = models.map((m) => m.promptWindowTokens).filter((v) => v != null);
+  const prompts = models.map((m) => m.promptMaxChars).filter((v) => v != null);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
   const minPrompt = prompts.length ? Math.min(...prompts) : 0;
@@ -16,9 +16,9 @@ export function computeScores(models, weights) {
           ? 0
           : (maxPrice - m.pricePerSecond) / (maxPrice - minPrice);
       const promptNorm =
-        m.promptWindowTokens == null || maxPrompt === minPrompt
+        m.promptMaxChars == null || maxPrompt === minPrompt
           ? 0
-          : (m.promptWindowTokens - minPrompt) / (maxPrompt - minPrompt);
+          : (m.promptMaxChars - minPrompt) / (maxPrompt - minPrompt);
       const multiNorm = m.multiShot ? 1 : 0;
       const qualityNorm = m.qualityScore == null ? 0 : m.qualityScore / 10;
 

@@ -5,7 +5,7 @@ body { margin: 0; background: #101211; color: #e8ede9; font-family: 'Inter', sys
 h2, h4 { margin: 0; }
 a { color: #a3e635; }
 
-.app-shell { display: grid; grid-template-columns: 216px 1fr; min-height: 100vh; }
+.app-shell { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
 .topnav { grid-column: 1 / -1; border-bottom: 1px solid rgba(180,255,200,.1); padding: 16px 28px; gap: 16px; display: flex; align-items: center; background: #131615; }
 .brand { font-weight: 700; font-size: 26px; letter-spacing: -0.01em; }
 .pill { white-space: nowrap; font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(163,230,53,.4); color: #a3e635; background: rgba(163,230,53,.12); }
@@ -51,7 +51,7 @@ input[type=range] { width: 100%; accent-color: #84cc16; }
 .status-msg { padding: 24px 4px; color: #8b9690; }
 
 @media (max-width: 760px) {
-  .app-shell { grid-template-columns: 1fr; }
+  .app-shell { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
   .sidebar { grid-row: 1; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid rgba(180,255,200,.1); }
   .navlabel, .kicker { display: none; }
 }
