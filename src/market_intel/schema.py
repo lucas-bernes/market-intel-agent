@@ -2,8 +2,19 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
 class ModelComparison(BaseModel):
-    model_name: str
-    provider: str
+    model_name: str = Field(
+        description=(
+            "Official product name with its version, in title case (e.g. "
+            "'Kling 3.0', 'Veo 3.1'). No endpoint/task suffixes such as "
+            "'Image to Video', no platform prefixes like 'fal-ai/'."
+        ),
+    )
+    provider: str = Field(
+        description=(
+            "The company that created the model (e.g. 'OpenAI', 'ByteDance', "
+            "'Alibaba'), NOT the platform hosting it (fal.ai, Replicate...)."
+        ),
+    )
     price_per_second_usd: Optional[float] = None
     max_reference_images: Optional[int] = None
     prompt_window_tokens: Optional[int] = None
