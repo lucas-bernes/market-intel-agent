@@ -13,7 +13,7 @@ MODEL_PROTECTED_FIELDS = {
     "provider",
     "price_per_second_usd",
     "max_reference_images",
-    "prompt_window_tokens",
+    "prompt_max_chars",
     "multi_shot_support",
     "quality_score",
 }
@@ -85,7 +85,7 @@ def load_all_comparisons() -> list[ModelComparison]:
                 provider=r.provider,
                 price_per_second_usd=r.price_per_second_usd,
                 max_reference_images=r.max_reference_images,
-                prompt_window_tokens=r.prompt_window_tokens,
+                prompt_max_chars=r.prompt_max_chars,
                 multi_shot_support=r.multi_shot_support,
                 quality_notes=r.quality_notes,
                 quality_score=r.quality_score,
@@ -103,6 +103,8 @@ def load_all_providers() -> list[ProviderComparison]:
                 provider_name=r.provider_name,
                 pricing_notes=r.pricing_notes,
                 uptime_pct=r.uptime_pct,
+                pricing_summary=r.pricing_summary,
+                stability_summary=r.stability_summary,
                 stability_notes=r.stability_notes,
                 notes=r.notes,
             )

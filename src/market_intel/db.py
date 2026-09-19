@@ -45,7 +45,7 @@ class ModelRecord(Base):
     provider: Mapped[str] = mapped_column(String)
     price_per_second_usd: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     max_reference_images: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    prompt_window_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    prompt_max_chars: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     multi_shot_support: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     quality_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     quality_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -59,6 +59,8 @@ class ProviderRecord(Base):
     provider_name: Mapped[str] = mapped_column(String)
     pricing_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     uptime_pct: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    pricing_summary: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    stability_summary: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     stability_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 

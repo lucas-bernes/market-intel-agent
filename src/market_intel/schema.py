@@ -17,7 +17,13 @@ class ModelComparison(BaseModel):
     )
     price_per_second_usd: Optional[float] = None
     max_reference_images: Optional[int] = None
-    prompt_window_tokens: Optional[int] = None
+    prompt_max_chars: Optional[int] = Field(
+        default=None,
+        description=(
+            "Maximum prompt length, in CHARACTERS, accepted by the model's "
+            "API (not tokens). Null if not stated."
+        ),
+    )
     multi_shot_support: Optional[bool] = None
     quality_notes: Optional[str] = Field(
         default=None,
@@ -61,7 +67,25 @@ class ProviderComparison(BaseModel):
     )
     uptime_pct: Optional[float] = Field(
         default=None,
-        description="Publicly disclosed uptime/SLA percentage (e.g. 99.9), if stated.",
+        description=(
+            "MEASURED API uptime percentage over the last 90 days, taken from "
+            "the provider's official status page. Do NOT put marketing claims "
+            "or SLA promises here (leave null); those belong in stability_notes."
+        ),
+    )
+    pricing_summary: Optional[str] = Field(
+        default=None,
+        description=(
+            "Objective pricing summary in at most 12 words, e.g. 'Pay-as-you-go, "
+            "per-output; GPUs from $1.89/h'. No marketing language."
+        ),
+    )
+    stability_summary: Optional[str] = Field(
+        default=None,
+        description=(
+            "Objective reliability summary in at most 12 words, e.g. 'Claims "
+            "99.99% uptime; no incident history disclosed'. No marketing language."
+        ),
     )
     stability_notes: Optional[str] = Field(
         default=None,

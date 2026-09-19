@@ -19,7 +19,7 @@ def generate_report() -> None:
 
     header = (
         f"{'Model':<{MODEL_WIDTH}} {'Provider':<{PROVIDER_WIDTH}} "
-        f"{'$/s':>8} {'Ref imgs':>9} {'Prompt tok':>11} {'Multi-shot':>11}"
+        f"{'$/s':>8} {'Ref imgs':>9} {'Prompt chars':>13} {'Multi-shot':>11}"
     )
     print(header)
     print("-" * len(header))
@@ -28,14 +28,14 @@ def generate_report() -> None:
         # dado) — mostramos "N/A" em vez de fingir que o valor é 0/False.
         price = "N/A" if c.price_per_second_usd is None else f"{c.price_per_second_usd:.2f}"
         ref_imgs = "N/A" if c.max_reference_images is None else str(c.max_reference_images)
-        prompt_tok = "N/A" if c.prompt_window_tokens is None else str(c.prompt_window_tokens)
+        prompt_tok = "N/A" if c.prompt_max_chars is None else str(c.prompt_max_chars)
         multi_shot = "N/A" if c.multi_shot_support is None else str(c.multi_shot_support)
         model_name = _truncate(c.model_name, MODEL_WIDTH)
         provider = _truncate(c.provider, PROVIDER_WIDTH)
 
         print(
             f"{model_name:<{MODEL_WIDTH}} {provider:<{PROVIDER_WIDTH}} {price:>8} "
-            f"{ref_imgs:>9} {prompt_tok:>11} {multi_shot:>11}"
+            f"{ref_imgs:>9} {prompt_tok:>13} {multi_shot:>11}"
         )
 
     # Seção separada pra qualidade: é texto longo (resumo de reviews), não

@@ -67,6 +67,33 @@ def extract_provider_comparison(raw_text: str) -> ProviderComparison:
     )
 
 
+class _StatusUptime(BaseModel):
+    api_uptime_pct: Optional[float] = Field(
+        default=None,
+        description=(
+            "Measured uptime percentage over the period shown on this status "
+            "page, for the provider's main inference/model API component ONLY "
+            "(never the website, dashboard or docs). If several API components "
+            "are listed, use the LOWEST of them. Null if the page shows no "
+            "uptime percentage for an API component."
+        ),
+    )
+    component_used: Optional[str] = Field(
+        default=None,
+        description="Name of the status-page component the number came from.",
+    )
+
+
+def extract_status_uptime(status_page_text: str) -> _StatusUptime:
+    return _extract(
+        status_page_text,
+        _StatusUptime,
+        "extract_status_uptime",
+        "Extrai o uptime medido do componente de API a partir de uma página de status",
+        "Extraia o uptime medido da API a partir da seguinte página de status:",
+    )
+
+
 class _QualityScoreExtraction(BaseModel):
     quality_score: Optional[float] = Field(
         default=None,
