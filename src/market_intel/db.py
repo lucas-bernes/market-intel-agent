@@ -19,7 +19,11 @@ DB_HOST = os.environ.get("POSTGRES_HOST", "127.0.0.1")
 DB_PORT = os.environ.get("POSTGRES_PORT", "5433")
 DB_NAME = os.environ.get("POSTGRES_DB", "market_intel")
 
-DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# DATABASE_URL explícita tem prioridade (usada nos testes, com SQLite temporário,
+# pra não depender do Postgres estar de pé).
+DATABASE_URL = os.environ.get("DATABASE_URL") or (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 # echo=False evita o SQLAlchemy imprimir cada SQL executado no terminal.
 engine = create_engine(DATABASE_URL, echo=False)

@@ -1,3 +1,5 @@
+import re
+
 from .db import ModelRecord, ProviderRecord, SessionLocal
 from .schema import ModelComparison, ProviderComparison
 
@@ -22,7 +24,10 @@ PROVIDER_APPENDABLE_FIELDS = {"pricing_notes", "stability_notes", "notes"}
 
 
 def _sanitize_key(key: str) -> str:
-    return key.lower().replace(" ", "-").replace("/", "-")
+    # Só letras, números, ponto e hífen; qualquer outra coisa (espaço, barra,
+    # parênteses...) vira hífen, e hífens repetidos/nas pontas são colapsados.
+    cleaned = re.sub(r"[^a-z0-9.]+", "-", key.lower())
+    return cleaned.strip("-")
 
 
 def _merge_and_save(session, model_cls, key_field: str, key_value: str, data: dict, protected: set, appendable: set) -> None:
