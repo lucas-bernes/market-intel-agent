@@ -73,6 +73,22 @@ Each run prints the source URL, the fields that passed (`OK`), the ones dropped 
 
 Prefer official sources: fal.ai's `llms.txt` per model, the creators' API docs for limits, and official status pages for uptime.
 
+### Scheduled collection
+
+`scripts/run_collection.py` walks `targets.json` — a curated list of **fixed URLs**, never search — and re-collects each one with `facts_only=True` (prices, limits, multi-shot, uptime; `quality_notes`/`notes` are left untouched, or they'd grow with a slightly reworded duplicate every run). Each target is isolated: one bad target doesn't stop the others. The script exits non-zero only if a whole target was rejected (wrong page/model), not for an individual dropped field, which is normal.
+
+```bash
+python scripts/run_collection.py            # local run against whatever DATABASE_URL points to
+```
+
+`.github/workflows/collect.yml` runs this weekly (`workflow_dispatch` also allows a manual run from the Actions tab), then rebuilds the frontend, regenerates the static snapshot and publishes it to GitHub Pages. It needs three repository secrets — `DATABASE_URL` (pointing at a reachable Postgres, e.g. Supabase's session-pooler URL), `DEEP_SEEK_API_KEY`, `FIRECRAWL_API_KEY` — and, once, the repo's **Settings > Pages > Source** set to "GitHub Actions".
+
+Some sources are deliberately left out of `targets.json` (see the `_excluded_*_comment` keys in the file for why): a wrong review search result would corrupt a record with nobody watching, and some official pages don't carry a stable, comparable number even when the text "verifies" cleanly:
+- **Sora 2**: OpenAI discontinued the product; needs a human decision (mark discontinued / remove from ranking), not an automatic price refresh.
+- **Luma Ray 3.2**: the only fal.ai page found is for Ray 2, a different version — correctly rejected every time, so left out to avoid noise until a real Ray 3.2 source turns up.
+- **Together AI's status page**: it lists uptime per hosted *model*, not a platform component. Our "use the lowest one" rule then quotes a different model's number every run — technically verified (real quote, real number) but not a stable reliability signal. Needs a rule that reads *all* the per-model rows and averages them in code, not an LLM picking one.
+- **Replicate's status page**: no uptime percentage at all, only incident days.
+
 ### Sharing a snapshot
 
 To show the dashboard to someone without running anything, build a single HTML file with the current data embedded:
@@ -117,7 +133,7 @@ What this does **not** guarantee: that the page itself is correct or current (pr
 - **`max_reference_images` is not uniform.** Most models count start/end frames (1-2); Seedance 2.5 counts reference-mode inputs (50). Do not compare them directly.
 - **The Luma Ray 3.2 record mixes sources**: specs from the Ray 2 page with a Ray 3.2 review.
 - **The ranking treats missing data as 0** for that criterion, which penalises models whose platform simply does not publish it.
-- **Price history and provider overhead/latency** are not collected. The dashboard's "Price history" tab shows illustrative data only and is labelled as such.
-- **No scheduled refresh yet**: collection is run by hand.
+- **Price history and provider overhead/latency** are not collected. The dashboard's "Price history" tab shows illustrative data only and is labelled as such. `field_evidence.collected_at` records when each verified value was last confirmed, but changes over time are overwritten, not kept as a history.
+- **Price basis is not guaranteed uniform across models**: a quoted price can be for a different resolution/tier depending on which one the source page happened to lead with (e.g. Seedance 2.0's price is for 720p, Seedance 2.5's is for 480p).
 - **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically.
-- **Not deployed**: it runs locally with Docker Compose.
+- **Not deployed as a live service**: the API and Postgres run locally (or wherever Docker Compose is pointed); only the read-only static snapshot is published, on a schedule (see Scheduled collection).

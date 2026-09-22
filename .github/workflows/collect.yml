@@ -1,0 +1,64 @@
+name: Scheduled data collection
+
+# Weekly, plus a manual button (Actions tab > this workflow > Run workflow)
+# for testing without waiting for the schedule. Cron times are UTC.
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Monday, 09:00 UTC (~06:00 America/Sao_Paulo)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # to push the generated snapshot to gh-pages
+  pages: write
+  id-token: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python package
+        run: pip install -e .
+
+      - name: Run scheduled collection (facts only, fixed sources)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DEEP_SEEK_API_KEY: ${{ secrets.DEEP_SEEK_API_KEY }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+        run: python scripts/run_collection.py
+        # Intentionally NOT continue-on-error: a target that's fully rejected
+        # (wrong page / model not found in the text) should surface as a red
+        # run so GitHub emails whoever gets notified — see run_collection.py.
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Export static snapshot
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/export_static.py
+
+      - name: Prepare Pages payload
+        run: |
+          mkdir -p public
+          cp export/market-intel-snapshot.html public/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - uses: actions/deploy-pages@v4
+        id: deployment

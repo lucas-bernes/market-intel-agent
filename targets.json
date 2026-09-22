@@ -1,0 +1,21 @@
+{
+  "_comment": "Alvos da coleta agendada (scripts/run_collection.py). Só URLs fixas e oficiais — a coleta agendada nunca usa busca (find_review_text/find_provider_info), porque uma busca pode achar o alvo errado sem ninguém revisando. Cada URL foi conferida manualmente antes de entrar aqui: veja README > Data quality > Scheduled collection.",
+
+  "models": [
+    { "model_key": "seedance-2.0", "url": "https://fal.ai/models/bytedance/seedance-2.0/image-to-video/llms.txt" },
+    { "model_key": "seedance-2.5", "url": "https://fal.ai/models/bytedance/seedance-2.5/image-to-video/llms.txt" },
+    { "model_key": "veo-3.1", "url": "https://fal.ai/models/fal-ai/veo3.1/image-to-video/llms.txt" },
+    { "model_key": "wan-2.2", "url": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/image-to-video/llms.txt" },
+    { "model_key": "kling-3.0", "url": "https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video/llms.txt" },
+    { "model_key": "minimax-hailuo-2.3", "url": "https://fal.ai/models/fal-ai/minimax/hailuo-2.3/pro/image-to-video/llms.txt" }
+  ],
+
+  "_excluded_models_comment": "sora-2: product discontinued per its own source page (Apr 2026) — needs a human decision, not an automated overwrite. luma-ray-3.2: the only fal.ai page found is 'Luma Ray 2' (different version) — the verifier correctly rejects it every time, so it's left out to avoid weekly noise until a real Ray 3.2 source is found.",
+
+  "provider_status": [
+    { "provider_key": "fal-ai", "provider_name": "fal.ai", "status_url": "https://status.fal.ai" },
+    { "provider_key": "baseten", "provider_name": "Baseten", "status_url": "https://status.baseten.co" }
+  ],
+
+  "_excluded_providers_comment": "replicate: its status page has no uptime percentage (incident days only), so every run would just log a rejection for nothing — left out until Replicate publishes one. together-ai: the status page lists uptime per hosted MODEL, not a platform-level component, and our 'use the lowest one' rule then picks a different model's number every run — technically verifiable (real quote, real number) but not a stable reliability signal. Left out until a per-model-list-averaging rule is built in code (see README > Data quality)."
+}
