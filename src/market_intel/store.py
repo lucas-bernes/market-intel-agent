@@ -104,13 +104,19 @@ def _save_evidence(session, entity_type: str, key: str, model_cls, key_field: st
 def save_model_comparison(
     comparison: ModelComparison, model_key: str,
     source_url: Optional[str] = None, evidence: Optional[dict[str, str]] = None,
+    facts_only: bool = False,
 ) -> list[tuple[str, object, object]]:
     # model_key continua sendo o identificador estável escolhido por quem
     # chama a função — não muda com a extração; antes era o nome do arquivo,
     # agora é a chave primária da linha na tabela "models".
+    # facts_only=True (usado pela coleta agendada): ignora quality_notes/notes
+    # por completo. Sem isso, o LLM reescreve o mesmo texto com outras
+    # palavras a cada execução, e o campo cresce pra sempre com quase-duplicatas.
     key = _sanitize_key(model_key)
     evidence = evidence or {}
     data = comparison.model_dump()
+    if facts_only:
+        data = {k: v for k, v in data.items() if k not in MODEL_APPENDABLE_FIELDS}
     with SessionLocal() as session:
         changes = _merge_and_save(
             session, ModelRecord, "model_key", key,

@@ -25,11 +25,11 @@ def _print_summary(verified: Verified, changes: list, source_url: str) -> None:
         print(f"  ATUALIZADO {field}: {old} -> {new}")
 
 
-def run_pipeline(url: str, model_key: str) -> None:
+def run_pipeline(url: str, model_key: str, facts_only: bool = False) -> None:
     raw_text = fetch_raw_text(url)
     extraction = extract_model_comparison(raw_text)
     verified = verify_model_extraction(extraction, raw_text, model_key)
-    changes = save_model_comparison(verified.comparison, model_key, url, verified.evidence)
+    changes = save_model_comparison(verified.comparison, model_key, url, verified.evidence, facts_only=facts_only)
     _print_summary(verified, changes, url)
     generate_report()
 
@@ -69,7 +69,8 @@ if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
         if mode == "url":
-            run_pipeline(sys.argv[2], sys.argv[3])
+            facts_only = "--facts-only" in sys.argv[4:]
+            run_pipeline(sys.argv[2], sys.argv[3], facts_only=facts_only)
         elif mode == "quality":
             run_quality_pipeline(sys.argv[2], sys.argv[3])
         elif mode == "provider":

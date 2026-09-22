@@ -144,20 +144,44 @@ def _words(name: str) -> list[str]:
 
 
 def _versions(name: str) -> list[str]:
-    return re.findall(r"\d+(?:\.\d+)*", name)
+    # Exclui contagens de parâmetros coladas em letras, tipo "A14B" em "Wan
+    # 2.2 A14B" — "14" ali não é versão, é tamanho do modelo. Uma exceção:
+    # um "v"/"V" logo antes (fal usa "v2.2" no id do endpoint) ainda conta.
+    # "2.2", cercado de espaço/hífen, continua capturado normalmente.
+    return re.findall(r"(?:(?<![a-zA-Z])|(?<=[vV]))\d+(?:\.\d+)*(?![a-zA-Z])", name)
+
+
+def _norm_version(v: str) -> str:
+    # O LLM às vezes simplifica "2.0" pra "2" (e vice-versa) entre uma
+    # chamada e outra — o número é o mesmo, então a comparação não deve
+    # tratar isso como produto diferente. Só normaliza quando o token é um
+    # número puro (evita quebrar algo como "2.2.1", que não ocorre hoje mas
+    # não deve travar caso apareça).
+    try:
+        text = f"{float(v):.6f}".rstrip("0").rstrip(".")
+        return text or "0"
+    except ValueError:
+        return v
 
 
 def same_model(expected: str, actual: str) -> bool:
     ew, aw = set(_words(expected)), set(_words(actual))
-    return _versions(expected) == _versions(actual) and ew <= aw and not ((aw - ew) & _VARIANT_WORDS)
+    ev = [_norm_version(v) for v in _versions(expected)]
+    av = [_norm_version(v) for v in _versions(actual)]
+    return ev == av and ew <= aw and not ((aw - ew) & _VARIANT_WORDS)
 
 
 def _model_in_text(expected: str, raw_collapsed: str) -> bool:
     words, versions = _words(expected), "".join(_versions(expected))
-    full = collapse("".join(words) + versions)
-    # Aceita também "última palavra + versão" (ex: só "Hailuo 2.3" na página).
-    tail = collapse(words[-1] + versions) if words else full
-    return full in raw_collapsed or tail in raw_collapsed
+    joined = "".join(words)
+    # Nome+versão, nome+versão com "v" no meio (fal escreve "Wan v2.2"), e só
+    # "última palavra + versão" (ex: só "Hailuo 2.3" na página) — qualquer
+    # uma dessas formas contando como a menção estar presente.
+    candidates = {collapse(joined + versions), collapse(joined + "v" + versions)}
+    if words:
+        candidates.add(collapse(words[-1] + versions))
+        candidates.add(collapse(words[-1] + "v" + versions))
+    return any(candidate in raw_collapsed for candidate in candidates)
 
 
 def same_provider(expected: str, actual: str) -> bool:
@@ -217,9 +241,13 @@ def verify_provider_extraction(extraction: ProviderExtraction, raw_text: str, ex
 def verify_uptime(value: Optional[float], quote: Optional[str], raw_text: str, expected_name: str) -> Verified:
     # Usado com páginas de status: o único dado é o uptime, então monta um
     # ProviderComparison mínimo só com ele.
-    if collapse(expected_name) not in collapse(raw_text):
-        raise ExtractionRejected(f"'{expected_name}' não aparece na página de status")
-
+    #
+    # Sem checagem de "nome aparece no texto" aqui, ao contrário das outras
+    # funções de verify: nesse modo a URL da página de status é escolhida à
+    # mão por quem chama (nunca vem de busca), então a identidade do alvo já
+    # está garantida por fora. Manter a checagem geraria falso negativo real:
+    # a página de status do Together AI (Better Stack) não escreve "Together
+    # AI" em lugar nenhum do texto renderizado, só nomes de componente.
     result = Verified(ProviderComparison(provider_name=expected_name))
     if value is None:
         return result

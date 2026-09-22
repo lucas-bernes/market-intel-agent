@@ -17,6 +17,9 @@ from market_intel.db import Base, engine  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def clean_db():
+    # Trava de segurança: drop_all apaga tudo, então nunca pode rodar num
+    # banco real (ex: o DATABASE_URL do Supabase no .env).
+    assert engine.url.get_backend_name() == "sqlite", "tests must run on SQLite, refusing to touch a real database"
     # Cada teste começa com as tabelas vazias.
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)

@@ -6,7 +6,9 @@ class ModelComparison(BaseModel):
         description=(
             "Official product name with its version, in title case (e.g. "
             "'Kling 3.0', 'Veo 3.1'). No endpoint/task suffixes such as "
-            "'Image to Video', no platform prefixes like 'fal-ai/'."
+            "'Image to Video', no platform prefixes like 'fal-ai/', and no "
+            "pricing-tier/quality suffixes such as 'Pro', 'Standard', 'Fast' "
+            "or 'Turbo' even if the page title includes one."
         ),
     )
     provider: str = Field(

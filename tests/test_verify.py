@@ -146,3 +146,32 @@ def test_verify_uptime_rejects_bad_quote():
 def test_provider_keys_match_real_names(key, name):
     page = f"{name} status page"
     assert verify_provider_extraction(ProviderExtraction(provider_name=name), page, key).comparison.provider_name == name
+
+
+def test_versions_ignore_parameter_size_suffix_glued_to_letters():
+    # "A14B" é contagem de parâmetros (14B ativos), não versão — não deve
+    # contar como "14" e quebrar a comparação de versão do modelo.
+    assert same_model("wan-2.2", "Wan 2.2 A14B")
+    assert same_model("wan-2.2", "Wan v2.2 A14B")
+
+
+def test_verify_uptime_does_not_require_brand_name_in_status_page_text():
+    # Página de status real (Better Stack) que só lista nomes de componente,
+    # nunca a marca "Together AI" no corpo do texto — a URL já é a garantia
+    # de identidade nesse modo, então isso não deve ser rejeitado.
+    page = "All services are online\n\nWebsite\n\nOperational\n\nModel API\n\n99.7% uptime"
+    result = verify_uptime(99.7, "Model API\n\n99.7% uptime", page, "Together AI")
+    assert result.comparison.uptime_pct == 99.7
+
+
+def test_model_in_text_accepts_v_prefixed_version():
+    # fal.ai escreve "Wan v2.2 A14B" na página; a chave é "wan-2.2".
+    page = "# Wan v2.2 A14B\n\nSome pricing details."
+    ext = ModelExtraction(model_name="Wan 2.2", provider="Alibaba")
+    result = verify_model_extraction(ext, page, "wan-2.2")
+    assert result.comparison.model_name == "Wan 2.2"
+
+
+@pytest.mark.parametrize("expected, actual", [("seedance-2.0", "Seedance 2"), ("kling-3.0", "Kling 3")])
+def test_same_model_tolerates_llm_dropping_trailing_zero(expected, actual):
+    assert same_model(expected, actual)
