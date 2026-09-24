@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import ModelRecord, ProviderRecord, SessionLocal
-from .schema import EvidenceOut, ModelComparisonOut, ProviderComparisonOut
-from .store import load_evidence
+from .schema import EvidenceOut, HistoryEntryOut, ModelComparisonOut, ProviderComparisonOut
+from .store import load_evidence, load_history
 
 app = FastAPI(title="Market Intel API")
 
@@ -39,3 +39,10 @@ def list_providers() -> list[ProviderComparisonOut]:
         records = session.query(ProviderRecord).all()
         evidence = load_evidence()
         return [_with_evidence(ProviderComparisonOut.model_validate(r), evidence.get(("provider", r.provider_key), {})) for r in records]
+
+
+@app.get("/api/history", response_model=list[HistoryEntryOut])
+def list_history() -> list[HistoryEntryOut]:
+    # Todas as mudanças já confirmadas, mais antiga primeiro; o front filtra
+    # por campo (ex: price_per_second_usd) pra montar o gráfico de preço.
+    return [HistoryEntryOut(**row) for row in load_history()]

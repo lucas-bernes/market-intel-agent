@@ -85,5 +85,22 @@ class FieldEvidenceRecord(Base):
     __table_args__ = (UniqueConstraint("entity_type", "entity_key", "field"),)
 
 
+class FieldHistoryRecord(Base):
+    # Registro só de INSERT, nunca UPDATE — ao contrário de FieldEvidenceRecord
+    # (que guarda a prova ATUAL e é sobrescrita), aqui cada mudança de valor
+    # gera uma linha nova, então dá pra reconstruir a linha do tempo de um
+    # campo (ex: o gráfico de preço) em vez de só o "agora".
+    __tablename__ = "field_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String)  # "model" | "provider"
+    entity_key: Mapped[str] = mapped_column(String)
+    field: Mapped[str] = mapped_column(String)
+    old_value: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # None = 1º valor conhecido
+    new_value: Mapped[str] = mapped_column(String)
+    source_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    changed_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 # Cria as tabelas que ainda não existirem (não faz nada com as que já existem).
 Base.metadata.create_all(engine)

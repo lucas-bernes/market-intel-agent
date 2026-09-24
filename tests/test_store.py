@@ -148,3 +148,47 @@ def test_evidence_is_not_attached_to_a_value_that_was_not_written():
         ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=9.0), "kling-3.0"
     )
     assert load_evidence() == {}
+
+
+def test_new_record_logs_its_first_known_values_as_history():
+    from market_intel.store import load_history
+
+    save_model_comparison(
+        ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=0.112),
+        "kling-3.0",
+    )
+
+    history = load_history(entity_type="model", field="price_per_second_usd")
+    [entry] = history
+    assert entry["entity_key"] == "kling-3.0"
+    assert entry["old_value"] is None
+    assert entry["new_value"] == "0.112"
+
+
+def test_verified_update_appends_a_history_row_without_erasing_the_first_one():
+    from market_intel.store import load_history
+
+    save_model_comparison(
+        ModelComparison(model_name="Seedance 2.0", provider="ByteDance", price_per_second_usd=0.3024),
+        "seedance-2.0",
+    )
+    save_model_comparison(
+        ModelComparison(model_name="Seedance 2.0", provider="ByteDance", price_per_second_usd=0.3034),
+        "seedance-2.0",
+        source_url="https://example.com/llms.txt",
+        evidence={"price_per_second_usd": "charged $0.3034/second"},
+    )
+
+    history = load_history(entity_type="model", field="price_per_second_usd")
+    assert [(h["old_value"], h["new_value"]) for h in history] == [(None, "0.3024"), ("0.3024", "0.3034")]
+    assert history[1]["source_url"] == "https://example.com/llms.txt"
+
+
+def test_unverified_attempt_to_change_a_protected_value_does_not_log_history():
+    from market_intel.store import load_history
+
+    save_model_comparison(ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=0.11), "kling-3.0")
+    save_model_comparison(ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=9.0), "kling-3.0")
+
+    history = load_history(entity_type="model", field="price_per_second_usd")
+    assert [h["new_value"] for h in history] == ["0.11"]

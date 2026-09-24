@@ -58,3 +58,15 @@ def test_api_lists_providers_empty():
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_api_lists_history_after_a_save():
+    save_model_comparison(ModelComparison(model_name="Kling 3.0", provider="Kling AI", price_per_second_usd=0.11), "kling-3.0")
+
+    response = TestClient(app).get("/api/history")
+
+    assert response.status_code == 200
+    [entry] = [e for e in response.json() if e["field"] == "price_per_second_usd"]
+    assert entry["entity_key"] == "kling-3.0"
+    assert entry["old_value"] is None
+    assert entry["new_value"] == "0.11"

@@ -22,7 +22,8 @@ def _print_summary(verified: Verified, changes: list, source_url: str) -> None:
     for field, reason in verified.rejected.items():
         print(f"  DESCARTADO {field}: {reason}")
     for field, old, new in changes:
-        print(f"  ATUALIZADO {field}: {old} -> {new}")
+        label = "REGISTRADO (1º valor)" if old is None else "ATUALIZADO"
+        print(f"  {label} {field}: {old} -> {new}")
 
 
 def run_pipeline(url: str, model_key: str, facts_only: bool = False) -> None:

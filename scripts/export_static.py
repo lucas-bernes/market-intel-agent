@@ -12,7 +12,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from market_intel.api import list_models, list_providers
+from market_intel.api import list_history, list_models, list_providers
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "frontend" / "dist"
@@ -27,6 +27,7 @@ def main() -> None:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "models": [m.model_dump(mode="json") for m in list_models()],
         "providers": [p.model_dump(mode="json") for p in list_providers()],
+        "history": [h.model_dump(mode="json") for h in list_history()],
     }
     snapshot_js = json.dumps(snapshot, ensure_ascii=False).replace(*CLOSE_TAG_SAFE)
 

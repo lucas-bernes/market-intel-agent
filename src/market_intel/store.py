@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timezone
 from typing import Optional
 
-from .db import FieldEvidenceRecord, ModelRecord, ProviderRecord, SessionLocal
+from .db import FieldEvidenceRecord, FieldHistoryRecord, ModelRecord, ProviderRecord, SessionLocal
 from .schema import ModelComparison, ProviderComparison
 
 # Campos de fato (incluindo identidade — nome/provider): tratamos a primeira
@@ -48,6 +48,11 @@ def _merge_and_save(
     if existing is None:
         record = model_cls(**{key_field: key_value}, **data)
         session.add(record)
+        # Registro novo: cada fato que já vem preenchido é o "1º valor
+        # conhecido" — vale registrar no histórico (old=None) mesmo sem uma
+        # mudança de verdade, senão o gráfico só ganha ponto a partir da
+        # primeira atualização, nunca do valor inicial.
+        changes.extend((field, None, value) for field, value in data.items() if field in protected and value is not None)
     else:
         # Já existe: mescla campo por campo — protegidos não são
         # sobrescritos, texto livre acumula, o resto assume o valor novo.
@@ -101,6 +106,40 @@ def _save_evidence(session, entity_type: str, key: str, model_cls, key_field: st
     session.commit()
 
 
+def _save_history(session, entity_type: str, key: str, changes: list[tuple[str, object, object]], source_url: Optional[str]) -> None:
+    if not changes:
+        return
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    for field, old, new in changes:
+        session.add(FieldHistoryRecord(
+            entity_type=entity_type, entity_key=key, field=field,
+            old_value=None if old is None else str(old), new_value=str(new),
+            source_url=source_url, changed_at=now,
+        ))
+    session.commit()
+
+
+def load_history(entity_type: Optional[str] = None, field: Optional[str] = None) -> list[dict]:
+    with SessionLocal() as session:
+        query = session.query(FieldHistoryRecord)
+        if entity_type:
+            query = query.filter_by(entity_type=entity_type)
+        if field:
+            query = query.filter_by(field=field)
+        return [
+            {
+                "entity_type": r.entity_type,
+                "entity_key": r.entity_key,
+                "field": r.field,
+                "old_value": r.old_value,
+                "new_value": r.new_value,
+                "source_url": r.source_url,
+                "changed_at": r.changed_at.isoformat(),
+            }
+            for r in query.order_by(FieldHistoryRecord.changed_at).all()
+        ]
+
+
 def save_model_comparison(
     comparison: ModelComparison, model_key: str,
     source_url: Optional[str] = None, evidence: Optional[dict[str, str]] = None,
@@ -123,6 +162,7 @@ def save_model_comparison(
             data, MODEL_PROTECTED_FIELDS, MODEL_APPENDABLE_FIELDS, frozenset(evidence),
         )
         _save_evidence(session, "model", key, ModelRecord, "model_key", data, evidence, source_url)
+        _save_history(session, "model", key, changes, source_url)
     return changes
 
 
@@ -139,6 +179,7 @@ def save_provider_comparison(
             data, PROVIDER_PROTECTED_FIELDS, PROVIDER_APPENDABLE_FIELDS, frozenset(evidence),
         )
         _save_evidence(session, "provider", key, ProviderRecord, "provider_key", data, evidence, source_url)
+        _save_history(session, "provider", key, changes, source_url)
     return changes
 
 

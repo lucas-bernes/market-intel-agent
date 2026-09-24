@@ -79,6 +79,18 @@ class ModelExtraction(ModelComparison):
     )
 
 
+class HistoryEntryOut(BaseModel):
+    # Uma mudança de valor já confirmada — a "prova" de cada uma é a mesma
+    # regra de verify.py, aplicada no momento em que ela foi salva.
+    entity_type: str
+    entity_key: str
+    field: str
+    old_value: Optional[str] = None
+    new_value: str
+    source_url: Optional[str] = None
+    changed_at: str
+
+
 class EvidenceOut(BaseModel):
     quote: str
     source_url: Optional[str] = None
