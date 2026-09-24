@@ -17,7 +17,7 @@ Web pages (pricing, docs, reviews) are collected with FireCrawl, an LLM (DeepSee
 ```
 FireCrawl (scrape / search) -> DeepSeek (extraction + quotes) -> verify.py -> Postgres
                                                                                 |
-                                       React dashboard  <-  FastAPI (/api/models, /api/providers)
+                                       React dashboard  <-  FastAPI (/api/models, /api/providers, /api/history)
 ```
 
 FireCrawl only *collects* the raw page text. DeepSeek *extracts* fields from it. `verify.py` then checks the extraction in plain code before anything is saved. Plain-text pages (`.txt`, `.json`, `.md`, e.g. fal.ai's `llms.txt`) are downloaded with a normal HTTP request, so they cost no FireCrawl credits.
@@ -133,7 +133,8 @@ What this does **not** guarantee: that the page itself is correct or current (pr
 - **`max_reference_images` is not uniform.** Most models count start/end frames (1-2); Seedance 2.5 counts reference-mode inputs (50). Do not compare them directly.
 - **The Luma Ray 3.2 record mixes sources**: specs from the Ray 2 page with a Ray 3.2 review.
 - **The ranking treats missing data as 0** for that criterion, which penalises models whose platform simply does not publish it.
-- **Price history and provider overhead/latency** are not collected. The dashboard's "Price history" tab shows illustrative data only and is labelled as such. `field_evidence.collected_at` records when each verified value was last confirmed, but changes over time are overwritten, not kept as a history.
+- **Provider overhead/latency** are not collected.
+- **Price history starts on 2026-09-22**, when the `field_history` table was introduced. Every value change `store.py` accepts from then on (a brand-new record's first known value, or a later verified update) gets an append-only row (`entity_type`, `entity_key`, `field`, `old_value`, `new_value`, `source_url`, `changed_at`); it is exposed at `/api/history` and charted in the "Price history" tab. The 8 rows that already existed in Postgres at that date got a one-time seed row each, copied from their (already-verified) `field_evidence` entry, so the chart has a real starting point instead of being empty — there is no earlier price data to backfill beyond that.
 - **Price basis is not guaranteed uniform across models**: a quoted price can be for a different resolution/tier depending on which one the source page happened to lead with (e.g. Seedance 2.0's price is for 720p, Seedance 2.5's is for 480p).
 - **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically.
 - **Not deployed as a live service**: the API and Postgres run locally (or wherever Docker Compose is pointed); only the read-only static snapshot is published, on a schedule (see Scheduled collection).

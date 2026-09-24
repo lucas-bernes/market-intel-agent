@@ -62,3 +62,15 @@ export async function fetchProviders() {
   const data = await response.json();
   return data.map(fromApiProvider);
 }
+
+// Histórico real de mudanças de valor (field_history) — cada entrada é uma
+// mudança já confirmada, old_value null na primeira vez que o campo foi visto.
+export async function fetchHistory() {
+  const snapshot = getSnapshot();
+  if (snapshot) return snapshot.history || [];
+  const response = await fetch(`${API_BASE_URL}/api/history`);
+  if (!response.ok) {
+    throw new Error(`API respondeu status ${response.status}`);
+  }
+  return response.json();
+}
