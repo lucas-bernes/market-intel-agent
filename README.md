@@ -103,9 +103,25 @@ It opens by double-click, needs no server or internet, and shows the snapshot da
 ### Tests
 
 ```bash
-pip install -e ".[dev]"
+pip install -c constraints.txt -e ".[dev]"
 pytest
 ```
+
+### Dependency versions
+
+Every package the project uses (direct and transitive, 46 in total) is pinned to an exact version in `constraints.txt`. Those are the versions the test suite and the real collection were verified against. CI (`tests.yml`, `collect.yml`) and the API `Dockerfile` install with `-c constraints.txt`, and the frontend image uses `npm ci`, so a new upstream release can no longer change the behaviour of a run on its own — this had already happened once (SQLAlchemy 2.1 switched the default PostgreSQL driver and broke the scheduled collection). `pyproject.toml` additionally carries guard-rail ranges, e.g. `sqlalchemy<2.1`.
+
+Upgrading is a deliberate step:
+
+```bash
+python -m venv .venv-upgrade && . .venv-upgrade/bin/activate   # Scripts\activate on Windows
+pip install -c constraints.txt -e ".[dev]"
+pip install -U <package>                  # e.g. sqlalchemy (raise the upper bound in pyproject.toml first if needed)
+pytest                                    # and run scripts/run_collection.py against a test database
+pip freeze --exclude-editable             # copy the new versions into constraints.txt
+```
+
+Constraints were resolved on Python 3.13 and checked to be installable on Python 3.12 / Linux (what CI and Docker use).
 
 ## Data quality
 

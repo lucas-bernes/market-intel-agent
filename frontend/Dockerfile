@@ -2,7 +2,8 @@
 FROM node:20-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm install
+# npm ci installs exactly what package-lock.json says (npm install may drift from it).
+RUN npm ci
 COPY . .
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL

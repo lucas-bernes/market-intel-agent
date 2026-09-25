@@ -24,7 +24,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python package
-        run: pip install -e .
+        run: pip install -c constraints.txt -e .
 
       - name: Run scheduled collection (facts only, fixed sources)
         env:

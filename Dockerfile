@@ -2,10 +2,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY pyproject.toml .
+COPY pyproject.toml constraints.txt ./
 COPY src/ src/
 
-RUN pip install --no-cache-dir .
+# -c pins every package (and sub-dependency) to the versions the tests ran on.
+RUN pip install --no-cache-dir -c constraints.txt .
 
 EXPOSE 8000
 
