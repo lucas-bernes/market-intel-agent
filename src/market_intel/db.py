@@ -20,10 +20,25 @@ DB_HOST = os.environ.get("POSTGRES_HOST", "127.0.0.1")
 DB_PORT = os.environ.get("POSTGRES_PORT", "5433")
 DB_NAME = os.environ.get("POSTGRES_DB", "market_intel")
 
+def _normalize_database_url(url: str) -> str:
+    # "postgresql://" sem driver explícito deixa a SQLAlchemy escolher: até a
+    # 2.0 era o psycopg2 (que este projeto instala); a partir da 2.1 passou a
+    # ser o psycopg 3, que não está instalado — e o programa quebra no import
+    # ("No module named 'psycopg'"). Foi o que derrubou a coleta agendada no
+    # GitHub, que sempre instala a versão mais nova. "postgres://" (estilo
+    # Heroku/Supabase) nem é aceito pela SQLAlchemy. Fixar o driver aqui evita
+    # depender da versão e do formato colado no secret.
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg2://" + url[len(prefix):]
+    return url
+
+
 # DATABASE_URL explícita tem prioridade (usada nos testes, com SQLite temporário,
 # pra não depender do Postgres estar de pé).
-DATABASE_URL = os.environ.get("DATABASE_URL") or (
-    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = _normalize_database_url(
+    os.environ.get("DATABASE_URL")
+    or f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
 # echo=False evita o SQLAlchemy imprimir cada SQL executado no terminal.
