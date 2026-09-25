@@ -81,7 +81,7 @@ Prefer official sources: fal.ai's `llms.txt` per model, the creators' API docs f
 python scripts/run_collection.py            # local run against whatever DATABASE_URL points to
 ```
 
-`.github/workflows/collect.yml` runs this weekly (`workflow_dispatch` also allows a manual run from the Actions tab), then rebuilds the frontend, regenerates the static snapshot and publishes it to GitHub Pages. It needs three repository secrets — `DATABASE_URL` (pointing at a reachable Postgres, e.g. Supabase's session-pooler URL), `DEEP_SEEK_API_KEY`, `FIRECRAWL_API_KEY` — and, once, the repo's **Settings > Pages > Source** set to "GitHub Actions".
+`.github/workflows/collect.yml` runs this daily at 09:00 UTC (`workflow_dispatch` also allows a manual run from the Actions tab), then rebuilds the frontend, regenerates the static snapshot and publishes it to GitHub Pages. It needs three repository secrets — `DATABASE_URL` (pointing at a reachable Postgres, e.g. Supabase's session-pooler URL), `DEEP_SEEK_API_KEY`, `FIRECRAWL_API_KEY` — and, once, the repo's **Settings > Pages > Source** set to "GitHub Actions".
 
 Some sources are deliberately left out of `targets.json` (see the `_excluded_*_comment` keys in the file for why): a wrong review search result would corrupt a record with nobody watching, and some official pages don't carry a stable, comparable number even when the text "verifies" cleanly:
 - **Sora 2**: OpenAI discontinued the product; needs a human decision (mark discontinued / remove from ranking), not an automatic price refresh.

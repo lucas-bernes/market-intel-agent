@@ -1,10 +1,10 @@
 name: Scheduled data collection
 
-# Weekly, plus a manual button (Actions tab > this workflow > Run workflow)
+# Daily, plus a manual button (Actions tab > this workflow > Run workflow)
 # for testing without waiting for the schedule. Cron times are UTC.
 on:
   schedule:
-    - cron: "0 9 * * 1" # Monday, 09:00 UTC (~06:00 America/Sao_Paulo)
+    - cron: "0 9 * * *" # every day, 09:00 UTC (~06:00 America/Sao_Paulo)
   workflow_dispatch: {}
 
 permissions:
