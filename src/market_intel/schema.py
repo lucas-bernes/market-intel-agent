@@ -17,7 +17,16 @@ class ModelComparison(BaseModel):
             "'Alibaba'), NOT the platform hosting it (fal.ai, Replicate...)."
         ),
     )
-    price_per_second_usd: Optional[float] = None
+    price_per_second_usd: Optional[float] = Field(
+        default=None,
+        description=(
+            "Price in USD per second of generated video at 720p, the reference "
+            "resolution used to compare models. If the text lists one price per "
+            "resolution, use the 720p one and quote that sentence. If it only "
+            "lists other resolutions, or a price per video/image/token instead of "
+            "per second, leave null."
+        ),
+    )
     max_reference_images: Optional[int] = None
     prompt_max_chars: Optional[int] = Field(
         default=None,
@@ -138,7 +147,9 @@ class ProviderComparison(BaseModel):
         default=None,
         description=(
             "Objective reliability summary in at most 12 words, e.g. 'Claims "
-            "99.99% uptime; no incident history disclosed'. No marketing language."
+            "99.99% uptime; no incident history disclosed'. No marketing language. "
+            "Do NOT state the measured uptime percentage: it lives in uptime_pct, "
+            "is refreshed daily, and a number written here would go stale."
         ),
     )
     stability_notes: Optional[str] = Field(

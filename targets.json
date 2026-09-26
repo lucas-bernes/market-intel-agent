@@ -6,11 +6,10 @@
     { "model_key": "seedance-2.5", "url": "https://fal.ai/models/bytedance/seedance-2.5/image-to-video/llms.txt" },
     { "model_key": "veo-3.1", "url": "https://fal.ai/models/fal-ai/veo3.1/image-to-video/llms.txt" },
     { "model_key": "wan-2.2", "url": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/image-to-video/llms.txt" },
-    { "model_key": "kling-3.0", "url": "https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video/llms.txt" },
-    { "model_key": "minimax-hailuo-2.3", "url": "https://fal.ai/models/fal-ai/minimax/hailuo-2.3/pro/image-to-video/llms.txt" }
+    { "model_key": "kling-3.0", "url": "https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video/llms.txt" }
   ],
 
-  "_excluded_models_comment": "sora-2: product discontinued per its own source page (Apr 2026) — needs a human decision, not an automated overwrite. luma-ray-3.2: the only fal.ai page found is 'Luma Ray 2' (different version) — the verifier correctly rejects it every time, so it's left out to avoid weekly noise until a real Ray 3.2 source is found.",
+  "_excluded_models_comment": "sora-2: product discontinued per its own source page (Apr 2026) — needs a human decision, not an automated overwrite. luma-ray-3.2: the only fal.ai page found is 'Luma Ray 2' (different version) — the verifier correctly rejects it every time, so it's left out to avoid daily noise until a real Ray 3.2 source is found. minimax-hailuo-2.3: its fal.ai page prices per VIDEO ($0.49), never per second, so no field can ever be verified from it; meanwhile the LLM sometimes names it 'Hailuo 2.3' and the whole run went red (fixed by tolerating a dropped brand, but there is still nothing to gain from collecting it).",
 
   "provider_status": [
     { "provider_key": "fal-ai", "provider_name": "fal.ai", "status_url": "https://status.fal.ai" },

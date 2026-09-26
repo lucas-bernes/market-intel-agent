@@ -175,3 +175,58 @@ def test_model_in_text_accepts_v_prefixed_version():
 @pytest.mark.parametrize("expected, actual", [("seedance-2.0", "Seedance 2"), ("kling-3.0", "Kling 3")])
 def test_same_model_tolerates_llm_dropping_trailing_zero(expected, actual):
     assert same_model(expected, actual)
+
+
+# ---- price basis: 720p is the reference resolution --------------------------
+
+_SEEDANCE_25_PAGE = (
+    "For 480p, your request will cost roughly **$0.2205** per second of generated video, "
+    "for 720p, you will be charged roughly **$0.4730** per second of generated video."
+)
+
+
+def test_price_quote_about_a_non_720p_resolution_is_rejected():
+    raw = normalize(_SEEDANCE_25_PAGE)
+    quote = "For 480p, your request will cost roughly **$0.2205** per second of generated video"
+    reason = check_field("price_per_second_usd", 0.2205, quote, raw)
+    assert reason and "720p" in reason
+
+
+def test_price_quote_about_720p_is_accepted():
+    raw = normalize(_SEEDANCE_25_PAGE)
+    quote = "for 720p, you will be charged roughly **$0.4730** per second of generated video"
+    assert check_field("price_per_second_usd", 0.473, quote, raw) is None
+
+
+def test_price_quote_without_any_resolution_is_accepted():
+    # Kling's price does not depend on resolution.
+    quote = "For every second of video you generated, you will be charged **$0.112** (audio off)"
+    assert check_field("price_per_second_usd", 0.112, quote, normalize(quote)) is None
+
+
+# ---- multi-shot needs a quote that names the feature ------------------------
+
+def test_multi_shot_rejects_a_prompt_example_that_only_says_scene():
+    quote = "Cut scene to an octopus football game under the sea."
+    assert check_field("multi_shot_support", True, quote, normalize(quote)) is not None
+
+
+def test_multi_shot_accepts_a_quote_that_names_the_feature():
+    quote = "List of prompts for multi-shot video generation. If provided, divides the video into multiple shots."
+    assert check_field("multi_shot_support", True, quote, normalize(quote)) is None
+
+
+# ---- the LLM sometimes drops the brand from the model name -------------------
+
+@pytest.mark.parametrize(
+    "expected, actual, ok",
+    [
+        ("minimax-hailuo-2.3", "Hailuo 2.3", True),
+        ("luma-ray-3.2", "Ray 3.2", True),
+        ("luma-ray-3.2", "Luma 3.2", False),   # the product word must stay
+        ("minimax-hailuo-2.3", "Hailuo 2.0", False),  # the version must stay
+        ("kling-3.0", "Omni 3.0", False),      # single-word names get no relaxation
+    ],
+)
+def test_same_model_tolerates_a_dropped_brand_prefix(expected, actual, ok):
+    assert same_model(expected, actual) is ok

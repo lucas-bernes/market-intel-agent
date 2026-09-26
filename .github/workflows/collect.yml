@@ -27,14 +27,18 @@ jobs:
         run: pip install -c constraints.txt -e .
 
       - name: Run scheduled collection (facts only, fixed sources)
+        id: collect
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DEEP_SEEK_API_KEY: ${{ secrets.DEEP_SEEK_API_KEY }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: python scripts/run_collection.py
-        # Intentionally NOT continue-on-error: a target that's fully rejected
-        # (wrong page / model not found in the text) should surface as a red
-        # run so GitHub emails whoever gets notified — see run_collection.py.
+        # A fully rejected target must not stop the site from being refreshed:
+        # the other targets' data is already saved and consistent (a failed
+        # target simply keeps its previous values). So the job keeps going and
+        # the last step turns the run red instead, which is what makes GitHub
+        # email the alert. Before this, one flaky target froze the whole site.
+        continue-on-error: true
 
       - uses: actions/setup-node@v4
         with:
@@ -62,3 +66,10 @@ jobs:
 
       - uses: actions/deploy-pages@v4
         id: deployment
+
+      - name: Fail the run if any collection target failed
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo "At least one collection target failed entirely (see the run summary and the collection step log)."
+          echo "The site was still published with the data that is in the database."
+          exit 1

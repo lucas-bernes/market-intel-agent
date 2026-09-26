@@ -11,12 +11,16 @@ Meant to run unattended (GitHub Actions cron). Differences from a manual
   - The script exits 1 if any *target* was fully rejected or errored — a
     rejected *field* inside an otherwise-good target (logged as DESCARTADO)
     is normal and does not fail the run.
+  - It ends with a compact one-line-per-target summary, also written to the
+    GitHub Actions run page ($GITHUB_STEP_SUMMARY), so the outcome is readable
+    without scrolling through the whole log.
 
 Usage:
     python scripts/run_collection.py [path/to/targets.json]
 """
 
 import json
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -26,44 +30,66 @@ from market_intel.verify import ExtractionRejected
 
 DEFAULT_TARGETS_PATH = Path(__file__).resolve().parent.parent / "targets.json"
 
+OK, NOTHING_NEW, FAILED = "ok", "no verified fields", "FAILED"
 
-def _run_target(label: str, action) -> bool:
-    """Runs one target, prints its outcome, returns True if it succeeded."""
+
+def _run_target(label: str, action) -> tuple[str, str]:
+    """Runs one target, prints its outcome, returns (status, detail)."""
     print(f"\n=== {label} ===")
     try:
-        action()
-        return True
+        verified = action()
     except ExtractionRejected as error:
         print(f"  REJEITADO: {error}")
-        return False
-    except Exception:
+        return FAILED, f"rejected: {error}"
+    except Exception as error:  # noqa: BLE001 - one bad target must not stop the run
         print("  ERRO inesperado:")
         traceback.print_exc()
-        return False
+        return FAILED, f"error: {type(error).__name__}: {error}"
+
+    confirmed = ", ".join(verified.evidence) or "-"
+    dropped = "; ".join(f"{field} ({reason})" for field, reason in verified.rejected.items())
+    detail = f"confirmed: {confirmed}" + (f" | dropped: {dropped}" if dropped else "")
+    return (OK if verified.evidence else NOTHING_NEW), detail
+
+
+def _write_summary(results: list[tuple[str, str, str]]) -> None:
+    print("\n=== summary ===")
+    for label, status, detail in results:
+        print(f"  {status:<18} {label:<28} {detail}")
+
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    lines = ["## Collection summary", "", "| Target | Status | Detail |", "|---|---|---|"]
+    lines += [f"| {label} | {status} | {detail} |" for label, status, detail in results]
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
 
 
 def main(targets_path: Path = DEFAULT_TARGETS_PATH) -> int:
     targets = json.loads(targets_path.read_text(encoding="utf-8"))
 
-    results = []
+    results: list[tuple[str, str, str]] = []
     for target in targets.get("models", []):
-        ok = _run_target(
+        status, detail = _run_target(
             f"model {target['model_key']}",
             lambda t=target: run_pipeline(t["url"], t["model_key"], facts_only=True),
         )
-        results.append((target["model_key"], ok))
+        results.append((target["model_key"], status, detail))
 
     for target in targets.get("provider_status", []):
-        ok = _run_target(
+        status, detail = _run_target(
             f"provider status {target['provider_key']}",
-            lambda t=target: run_status_pipeline(t["status_url"], t["provider_name"], t["provider_key"]),
+            lambda t=target: run_status_pipeline(t["status_url"], t["provider_name"], t["provider_key"], quiet=True),
         )
-        results.append((target["provider_key"], ok))
+        results.append((target["provider_key"], status, detail))
 
-    failed = [key for key, ok in results if not ok]
-    print(f"\n{len(results) - len(failed)}/{len(results)} alvos OK.")
+    _write_summary(results)
+
+    failed = [label for label, status, _ in results if status == FAILED]
+    print(f"\n{len(results) - len(failed)}/{len(results)} targets ran without a full rejection.")
     if failed:
-        print(f"Alvos com falha total (nada foi salvo para eles): {', '.join(failed)}")
+        print(f"Targets that failed entirely (nothing was saved for them): {', '.join(failed)}")
         return 1
     return 0
 

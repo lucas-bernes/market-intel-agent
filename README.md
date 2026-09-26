@@ -81,11 +81,12 @@ Prefer official sources: fal.ai's `llms.txt` per model, the creators' API docs f
 python scripts/run_collection.py            # local run against whatever DATABASE_URL points to
 ```
 
-`.github/workflows/collect.yml` runs this daily at 09:00 UTC (`workflow_dispatch` also allows a manual run from the Actions tab), then rebuilds the frontend, regenerates the static snapshot and publishes it to GitHub Pages. It needs three repository secrets — `DATABASE_URL` (pointing at a reachable Postgres, e.g. Supabase's session-pooler URL), `DEEP_SEEK_API_KEY`, `FIRECRAWL_API_KEY` — and, once, the repo's **Settings > Pages > Source** set to "GitHub Actions".
+`.github/workflows/collect.yml` runs this daily at 09:00 UTC (`workflow_dispatch` also allows a manual run from the Actions tab), then rebuilds the frontend, regenerates the static snapshot and publishes it to GitHub Pages. A target that fails entirely does **not** block publishing: the collection step is `continue-on-error`, the site is still refreshed with what the database holds (a failed target just keeps its previous values), and a final step turns the run red so GitHub emails the alert. The run page carries a one-line-per-target summary (`$GITHUB_STEP_SUMMARY`), and the log stays short because the full report only prints on manual runs. It needs three repository secrets — `DATABASE_URL` (pointing at a reachable Postgres, e.g. Supabase's session-pooler URL), `DEEP_SEEK_API_KEY`, `FIRECRAWL_API_KEY` — and, once, the repo's **Settings > Pages > Source** set to "GitHub Actions".
 
 Some sources are deliberately left out of `targets.json` (see the `_excluded_*_comment` keys in the file for why): a wrong review search result would corrupt a record with nobody watching, and some official pages don't carry a stable, comparable number even when the text "verifies" cleanly:
 - **Sora 2**: OpenAI discontinued the product; needs a human decision (mark discontinued / remove from ranking), not an automatic price refresh.
 - **Luma Ray 3.2**: the only fal.ai page found is for Ray 2, a different version — correctly rejected every time, so left out to avoid noise until a real Ray 3.2 source turns up.
+- **MiniMax Hailuo 2.3**: its fal.ai page prices per *video* ($0.49), never per second, so no field can ever be verified from it; it only added a chance of a red run.
 - **Together AI's status page**: it lists uptime per hosted *model*, not a platform component. Our "use the lowest one" rule then quotes a different model's number every run — technically verified (real quote, real number) but not a stable reliability signal. Needs a rule that reads *all* the per-model rows and averages them in code, not an LLM picking one.
 - **Replicate's status page**: no uptime percentage at all, only incident days.
 
@@ -129,13 +130,13 @@ The LLM can misread a page, so its output is checked before saving (`src/market_
 
 1. **Evidence quote required.** For each price, image limit, prompt limit, multi-shot flag, quality score and uptime, the LLM must copy the exact sentence that states it. No quote means the field stays empty.
 2. **The quote must exist** in the collected text (whitespace, case and markdown noise are ignored).
-3. **The number must be in the quote**, and the quote must be about the right thing (a "per 1000 tokens" price is never accepted as a per-second price).
+3. **The number must be in the quote**, and the quote must be about the right thing (a "per 1000 tokens" price is never accepted as a per-second price). Two content rules on top: a price quote that only concerns a resolution other than **720p** (the reference) is rejected, and a multi-shot quote has to name the feature (a bare "scene" in a prompt example does not count).
 4. **Plausible range** (e.g. price 0.001-5 USD/s, uptime 90-100%).
-5. **Right target.** The extracted name must match the requested key (version numbers must be equal; "Sora 2 Pro" is not "Sora 2"), and the name must appear in the text.
+5. **Right target.** The extracted name must match the requested key (version numbers must be equal; "Sora 2 Pro" is not "Sora 2"), and the name must appear in the text. With two or more words the brand (first word) may be missing, since the LLM sometimes writes "Hailuo 2.3" for "MiniMax Hailuo 2.3"; the rest of the name and the version stay mandatory.
 
 A failed field is dropped, never guessed. The approved quote, source URL and collection date are stored in the `field_evidence` table and exposed as `evidence` in the API; the dashboard shows them.
 
-What this does **not** guarantee: that the page itself is correct or current (prices change often, so check the collection date), or which pricing tier or resolution a quoted price refers to (for example, Seedance 2.0 is $0.3034/s at 720p and $0.682/s at 1080p on fal.ai).
+What this does **not** guarantee: that the page itself is correct or current (prices change often, so check the collection date), or which resolution a quote refers to when it lists several (for example, Seedance 2.0 is $0.3034/s at 720p and $0.682/s at 1080p on fal.ai). The extraction schema asks for the 720p price and the code rejects quotes that only concern another resolution, but when one quote lists several resolutions the choice is still the LLM's.
 
 ## Known limitations
 
@@ -151,6 +152,6 @@ What this does **not** guarantee: that the page itself is correct or current (pr
 - **The ranking treats missing data as 0** for that criterion, which penalises models whose platform simply does not publish it.
 - **Provider overhead/latency** are not collected.
 - **Price history starts on 2026-09-22**, when the `field_history` table was introduced. Every value change `store.py` accepts from then on (a brand-new record's first known value, or a later verified update) gets an append-only row (`entity_type`, `entity_key`, `field`, `old_value`, `new_value`, `source_url`, `changed_at`); it is exposed at `/api/history` and charted in the "Price history" tab. The 8 rows that already existed in Postgres at that date got a one-time seed row each, copied from their (already-verified) `field_evidence` entry, so the chart has a real starting point instead of being empty — there is no earlier price data to backfill beyond that.
-- **Price basis is not guaranteed uniform across models**: a quoted price can be for a different resolution/tier depending on which one the source page happened to lead with (e.g. Seedance 2.0's price is for 720p, Seedance 2.5's is for 480p).
+- **Price basis is 720p, enforced mostly by an instruction to the LLM.** On Seedance 2.5's page (one price per resolution) the price used to flip between runs: in a read-only test of 10 extractions with the old schema, 4 returned the 480p price, 3 the 720p price and 3 nothing; with the 720p instruction all 10 returned the 720p price. The code guard only catches a quote that mentions *no* 720p at all. Models whose page has no 720p price, or prices per video (MiniMax), get no price.
 - **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically.
 - **Not deployed as a live service**: the API and Postgres run locally (or wherever Docker Compose is pointed); only the read-only static snapshot is published, on a schedule (see Scheduled collection).

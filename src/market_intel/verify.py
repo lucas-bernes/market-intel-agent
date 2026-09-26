@@ -44,7 +44,10 @@ KEYWORDS = {
     "price_per_second_usd": r"second|/\s*s\b|/\s*sec|\bsec\b",
     "max_reference_images": r"image|reference|frame|photo",
     "prompt_max_chars": r"char",
-    "multi_shot_support": r"shot|scene|multi",
+    # Precisa nomear o recurso; só "scene"/"shot" soltos casam com exemplos de
+    # prompt na documentação ("Cut scene to an octopus...") e dariam um selo
+    # de verificado sem sustentação.
+    "multi_shot_support": r"multi[-_ ]?(shot|scene|prompt)|multiple (shots|scenes)|storyboard",
     "quality_score": r"score|rating|/\s*10|out of",
     "uptime_pct": r"uptime|%",
 }
@@ -125,6 +128,17 @@ def check_field(field_name: str, value, quote: Optional[str], raw_norm: str) -> 
     if not re.search(KEYWORDS[field_name], quote_norm):
         return "citação não fala do assunto do campo"
 
+    if field_name == "price_per_second_usd":
+        # Páginas listam um preço por resolução e o LLM alterna entre elas de
+        # uma chamada pra outra (Seedance 2.5: 480p em 4 de 5 chamadas, 720p
+        # na outra), o que geraria "mudanças de preço" falsas todo dia. A
+        # referência é 720p: citação que só fala de outra resolução é rejeitada.
+        # Limite conhecido: se a citação lista 720p junto de outras, não dá pra
+        # saber qual número é de qual — isso passa.
+        resolutions = set(re.findall(r"\b(\d{3,4})p\b", quote_norm))
+        if resolutions and "720" not in resolutions:
+            return f"preço de outra resolução ({', '.join(sorted(resolutions))}p); referência é 720p"
+
     if field_name not in BOOLEAN_FIELDS and not _number_supported(field_name, float(value), quote):
         return "número não aparece na citação"
 
@@ -165,10 +179,15 @@ def _norm_version(v: str) -> str:
 
 
 def same_model(expected: str, actual: str) -> bool:
-    ew, aw = set(_words(expected)), set(_words(actual))
+    ordered = _words(expected)
+    ew, aw = set(ordered), set(_words(actual))
     ev = [_norm_version(v) for v in _versions(expected)]
     av = [_norm_version(v) for v in _versions(actual)]
-    return ev == av and ew <= aw and not ((aw - ew) & _VARIANT_WORDS)
+    # O LLM às vezes omite a marca ("Hailuo 2.3" em vez de "MiniMax Hailuo
+    # 2.3"). Com 2+ palavras, a primeira (a marca) pode faltar; o resto do nome
+    # e a versão continuam obrigatórios, então "Luma 3.2" != "Luma Ray 3.2".
+    words_ok = ew <= aw or (len(ordered) >= 2 and set(ordered[1:]) <= aw)
+    return ev == av and words_ok and not ((aw - ew) & _VARIANT_WORDS)
 
 
 def _model_in_text(expected: str, raw_collapsed: str) -> bool:

@@ -26,13 +26,18 @@ def _print_summary(verified: Verified, changes: list, source_url: str) -> None:
         print(f"  {label} {field}: {old} -> {new}")
 
 
-def run_pipeline(url: str, model_key: str, facts_only: bool = False) -> None:
+def run_pipeline(url: str, model_key: str, facts_only: bool = False) -> Verified:
     raw_text = fetch_raw_text(url)
     extraction = extract_model_comparison(raw_text)
     verified = verify_model_extraction(extraction, raw_text, model_key)
     changes = save_model_comparison(verified.comparison, model_key, url, verified.evidence, facts_only=facts_only)
     _print_summary(verified, changes, url)
-    generate_report()
+    # O relatório completo (com todas as notas de qualidade, ~7 KB) só serve pra
+    # quem roda na mão. No modo agendado ele repetia depois de cada alvo e
+    # enterrava as linhas que importam no log do CI.
+    if not facts_only:
+        generate_report()
+    return verified
 
 
 def run_quality_pipeline(model_name: str, model_key: str) -> None:
@@ -55,7 +60,7 @@ def run_provider_pipeline(provider_name: str, provider_key: str) -> None:
     generate_provider_report()
 
 
-def run_status_pipeline(status_url: str, provider_name: str, provider_key: str) -> None:
+def run_status_pipeline(status_url: str, provider_name: str, provider_key: str, quiet: bool = False) -> Verified:
     # Uptime medido vem da página de status oficial, não de busca: a URL é
     # informada por quem roda, então a fonte é sempre a oficial.
     raw_text = fetch_raw_text(status_url)
@@ -63,7 +68,9 @@ def run_status_pipeline(status_url: str, provider_name: str, provider_key: str) 
     verified = verify_uptime(result.api_uptime_pct, result.evidence_quote, raw_text, provider_name)
     changes = save_provider_comparison(verified.comparison, provider_key, status_url, verified.evidence)
     _print_summary(verified, changes, status_url)
-    generate_provider_report()
+    if not quiet:
+        generate_provider_report()
+    return verified
 
 
 if __name__ == "__main__":
