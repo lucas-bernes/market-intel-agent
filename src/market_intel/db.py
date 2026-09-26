@@ -66,6 +66,9 @@ class ModelRecord(Base):
     quality_notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     quality_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Descontinuado na plataforma comparada (ex: endpoint desligado). Fica
+    # fora do ranking; só é marcado por store.set_discontinued, com evidência.
+    discontinued: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
 
 
 class ProviderRecord(Base):

@@ -15,6 +15,8 @@ function fromApiModel(record) {
     promptMaxChars: record.prompt_max_chars,
     multiShot: record.multi_shot_support,
     qualityScore: record.quality_score,
+    // true = descontinuado na plataforma comparada; fica fora do ranking.
+    discontinued: record.discontinued === true,
     docUrl: null,
     notes: record.quality_notes || record.notes || 'Sem notas ainda.',
     evidence: record.evidence || {},

@@ -277,3 +277,61 @@ def verify_uptime(value: Optional[float], quote: Optional[str], raw_text: str, e
         result.comparison.uptime_pct = value
         result.evidence["uptime_pct"] = quote
     return result
+
+
+# ---- discontinuation --------------------------------------------------------
+
+# The subject must be the endpoint/model/product itself. Without this, a page
+# about an ACTIVE model matched a sentence about its client library ("Note:
+# @fal-ai/serverless-client is deprecated") and would have been flagged.
+_SUBJECT = r"\bthis (?:endpoint|model|product)"
+
+# Current-state statements only. "will be deprecated on <future date>" means the
+# model is still available, so it must not flag anything.
+_DISCONTINUED_STATE = re.compile(
+    _SUBJECT + r" (?:is|has been) (?:deprecated|discontinued|shut down|retired)|"
+    + _SUBJECT + r" is no longer (?:supported|available)",
+    re.IGNORECASE,
+)
+_SHUTDOWN_ON = re.compile(
+    _SUBJECT + r" will be (?:shut down|shutdown|retired|sunset)[^.]{0,20}?\bon\s+([A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?, \d{4})",
+    re.IGNORECASE,
+)
+
+
+def _sentences(text: str) -> list[str]:
+    return [" ".join(part.split()) for part in re.split(r"(?<=[.!?])\s+|\n+", text) if part.strip()]
+
+
+def find_discontinuation(text: str, today=None) -> Optional[str]:
+    """Returns the sentence that proves the product is discontinued, or None.
+
+    Deterministic on purpose (no LLM): a wrong "discontinued" removes a model
+    from the ranking. Accepts a current-state statement whose subject is the
+    endpoint/model/product itself ("This model is no longer supported", "This
+    endpoint is deprecated") or "This endpoint will be shut down on <date>" when
+    that date has already passed; a future date is only an announcement.
+    """
+    from datetime import datetime, timezone
+
+    today = today or datetime.now(timezone.utc).date()
+    for sentence in _sentences(text):
+        if len(sentence) > 300:
+            continue  # a wall of text, not a banner or a statement
+        if _DISCONTINUED_STATE.search(sentence):
+            return sentence
+        match = _SHUTDOWN_ON.search(sentence)
+        if match:
+            raw = re.sub(r"(\d)(?:st|nd|rd|th)", r"\1", match.group(1))
+            try:
+                when = datetime.strptime(raw, "%B %d, %Y").date()
+            except ValueError:
+                continue
+            if when <= today:
+                return sentence
+    return None
+
+
+def mentions_model(expected: str, text: str) -> bool:
+    """True if the text names the expected model (name + version, tolerant of 'v2.2')."""
+    return _model_in_text(expected, collapse(text))

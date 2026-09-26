@@ -28,7 +28,12 @@ export default function App() {
       .catch((err) => setLoadError(err.message))
   }, [])
 
-  const ranked = computeScores(models, weights)
+  // Descontinuados ficam fora do ranking e da normalização (um preço de um
+  // produto que não existe mais distorceria a nota dos outros), mas continuam
+  // visíveis na tabela comparativa e no detalhe, com a fonte da descontinuação.
+  const active = models.filter((m) => !m.discontinued)
+  const discontinued = models.filter((m) => m.discontinued)
+  const ranked = computeScores(active, weights)
 
   function selectModel(id) {
     setSelectedModelId(id)
@@ -43,7 +48,7 @@ export default function App() {
           {loadError
             ? 'Erro ao carregar API'
             : models.length
-              ? `${models.length} modelos (dado real)${getSnapshot() ? ` · snapshot de ${new Date(getSnapshot().generated_at).toLocaleDateString()}` : ''}`
+              ? `${active.length} modelos${discontinued.length ? ` (+${discontinued.length} descontinuado)` : ''} (dado real)${getSnapshot() ? ` · snapshot de ${new Date(getSnapshot().generated_at).toLocaleDateString()}` : ''}`
               : 'Loading...'}
         </span>
         <button className="btn btn-primary" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>Export ↗</button>
@@ -64,11 +69,11 @@ export default function App() {
         {!loadError && models.length > 0 && (
           <>
             {view === 'overview' && (
-              <RankingView ranked={ranked} onSelectModel={selectModel} onAdjustWeights={() => setView('config')} />
+              <RankingView ranked={ranked} discontinuedCount={discontinued.length} onSelectModel={selectModel} onAdjustWeights={() => setView('config')} />
             )}
-            {view === 'table' && <ComparisonTableView ranked={ranked} onSelectModel={selectModel} />}
+            {view === 'table' && <ComparisonTableView ranked={ranked} discontinued={discontinued} onSelectModel={selectModel} />}
             {view === 'detail' && (
-              <ModelDetailView ranked={ranked} selectedModelId={selectedModelId} onBack={() => setView('overview')} />
+              <ModelDetailView ranked={ranked} discontinued={discontinued} selectedModelId={selectedModelId} onBack={() => setView('overview')} />
             )}
             {view === 'history' && <PriceHistoryView />}
             {view === 'aggregators' && <ApiAggregatorsView />}

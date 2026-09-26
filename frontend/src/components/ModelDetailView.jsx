@@ -16,9 +16,11 @@ function SourceTag({ evidence }) {
   )
 }
 
-export default function ModelDetailView({ ranked, selectedModelId, onBack }) {
-  const model = ranked.find((m) => m.id === selectedModelId) || ranked[0]
+export default function ModelDetailView({ ranked, discontinued = [], selectedModelId, onBack }) {
+  const model = ranked.find((m) => m.id === selectedModelId) || discontinued.find((m) => m.id === selectedModelId) || ranked[0]
+  const isDiscontinued = model.discontinued === true
   const rank = ranked.findIndex((m) => m.id === model.id) + 1
+  const discontinuedEvidence = model.evidence.discontinued
 
   const specs = [
     ['$ / second', fmt(model.pricePerSecond, (v) => `$${v.toFixed(4)}`), 'price_per_second_usd'],
@@ -36,15 +38,39 @@ export default function ModelDetailView({ ranked, selectedModelId, onBack }) {
 
       <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: '#a3e635' }}>Rank #{rank}</div>
+          <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: isDiscontinued ? '#f87171' : '#a3e635' }}>
+            {isDiscontinued ? 'Discontinued — not ranked' : `Rank #${rank}`}
+          </div>
           <h2 style={{ fontSize: 26, fontWeight: 700, margin: '6px 0 4px' }}>{model.name}</h2>
           <div className="muted" style={{ fontSize: 14 }}>{model.provider}</div>
         </div>
-        <div className="score-box">
-          <div style={{ fontSize: 34, fontWeight: 700 }}>{model.score.toFixed(1)}</div>
-          <div className="muted" style={{ fontSize: 12 }}>score / 100</div>
-        </div>
+        {!isDiscontinued && (
+          <div className="score-box">
+            <div style={{ fontSize: 34, fontWeight: 700 }}>{model.score.toFixed(1)}</div>
+            <div className="muted" style={{ fontSize: 12 }}>score / 100</div>
+          </div>
+        )}
       </Card>
+
+      {isDiscontinued && (
+        <Card style={{ marginBottom: 24, borderColor: 'rgba(248,113,113,.4)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#f87171', marginBottom: 6 }}>Este modelo foi descontinuado</div>
+          <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
+            Fica fora do ranking; os valores abaixo são os últimos conhecidos.
+            {discontinuedEvidence && (
+              <>
+                {' '}Fonte: "{discontinuedEvidence.quote}"{' '}
+                {discontinuedEvidence.source_url && (
+                  <a href={discontinuedEvidence.source_url} target="_blank" rel="noreferrer" style={{ color: '#a3e635' }}>
+                    página ↗
+                  </a>
+                )}
+                {' '}· confirmado em {new Date(discontinuedEvidence.collected_at).toLocaleDateString()}
+              </>
+            )}
+          </p>
+        </Card>
+      )}
 
       <div className="spec-grid">
         {specs.map(([label, value, field]) => (

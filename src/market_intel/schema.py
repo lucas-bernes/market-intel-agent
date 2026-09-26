@@ -114,6 +114,8 @@ class ModelComparisonOut(ModelComparison):
     model_config = ConfigDict(from_attributes=True)
 
     model_key: str
+    # Só existe na saída: quem marca é store.set_discontinued, nunca a extração.
+    discontinued: Optional[bool] = None
     # Prova de cada campo verificado; campo ausente aqui = sem evidência.
     evidence: dict[str, EvidenceOut] = Field(default_factory=dict)
 

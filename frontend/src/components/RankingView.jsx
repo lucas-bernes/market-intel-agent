@@ -10,7 +10,7 @@ function MultiShotChip({ yes }) {
   )
 }
 
-export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) {
+export default function RankingView({ ranked, discontinuedCount = 0, onSelectModel, onAdjustWeights }) {
   const withPrice = ranked.filter((m) => m.pricePerSecond != null)
   const withPrompt = ranked.filter((m) => m.promptMaxChars != null)
   const withQuality = ranked.filter((m) => m.qualityScore != null)
@@ -65,6 +65,11 @@ export default function RankingView({ ranked, onSelectModel, onAdjustWeights }) 
           <p className="muted" style={{ fontSize: 14, maxWidth: 560 }}>
             Scored by cost per second, prompt limit, multi-shot support and quality (quando disponível).
           </p>
+          {discontinuedCount > 0 && (
+            <p className="muted" style={{ fontSize: 12, maxWidth: 560, marginTop: 6 }}>
+              {discontinuedCount} descontinuado{discontinuedCount > 1 ? 's' : ''} fora do ranking — veja na Comparison table.
+            </p>
+          )}
         </div>
         <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={onAdjustWeights}>
           Adjust weights

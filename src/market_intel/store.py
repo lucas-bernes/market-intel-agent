@@ -183,6 +183,58 @@ def save_provider_comparison(
     return changes
 
 
+def load_verified_fields(entity_type: str, key: str) -> set[str]:
+    # Campos deste registro que já tiveram uma evidência verificada — a coleta
+    # usa isso pra saber o que "deveria" ter voltado e tentar de novo se sumiu.
+    with SessionLocal() as session:
+        rows = session.query(FieldEvidenceRecord.field).filter_by(entity_type=entity_type, entity_key=_sanitize_key(key)).all()
+        return {row[0] for row in rows}
+
+
+def set_discontinued(
+    model_key: str, discontinued: bool, quote: Optional[str] = None, source_url: Optional[str] = None,
+) -> bool:
+    """Marks (or unmarks) a model as discontinued. Returns True if the flag changed.
+
+    Not part of the merge rules on purpose: a wrong "discontinued" hides a model
+    from the ranking, so it is only set explicitly, with a quote checked by code
+    (see verify.find_discontinuation), never by an extraction.
+    """
+    key = _sanitize_key(model_key)
+    with SessionLocal() as session:
+        record = session.get(ModelRecord, key)
+        if record is None:
+            raise KeyError(f"unknown model: {key}")
+        old = record.discontinued
+        if bool(old) == discontinued:
+            return False
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        record.discontinued = discontinued
+        evidence = (
+            session.query(FieldEvidenceRecord)
+            .filter_by(entity_type="model", entity_key=key, field="discontinued")
+            .one_or_none()
+        )
+        if discontinued:
+            if evidence is None:
+                evidence = FieldEvidenceRecord(entity_type="model", entity_key=key, field="discontinued")
+                session.add(evidence)
+            evidence.value, evidence.quote, evidence.source_url, evidence.collected_at = (
+                "True", quote or "", source_url, now,
+            )
+        elif evidence is not None:
+            session.delete(evidence)
+
+        session.add(FieldHistoryRecord(
+            entity_type="model", entity_key=key, field="discontinued",
+            old_value=None if old is None else str(old), new_value=str(discontinued),
+            source_url=source_url, changed_at=now,
+        ))
+        session.commit()
+        return True
+
+
 def load_evidence() -> dict[tuple[str, str], dict[str, dict]]:
     # {(entity_type, entity_key): {campo: {quote, source_url, collected_at}}}
     with SessionLocal() as session:

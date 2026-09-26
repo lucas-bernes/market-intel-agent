@@ -65,6 +65,11 @@ docker compose exec api python -m market_intel.run_pipeline provider '"Baseten.c
 
 # Measured uptime from an official status page: <status URL> <provider name> <provider_key>
 docker compose exec api python -m market_intel.run_pipeline status https://status.fal.ai fal.ai fal-ai
+
+# Flag a model as discontinued (out of the ranking); the page must say so about itself
+docker compose exec api python -m market_intel.run_pipeline discontinued sora-2 https://fal.ai/models/fal-ai/sora-2/image-to-video
+# ...and undo it if the product comes back
+docker compose exec api python -m market_intel.run_pipeline active sora-2
 ```
 
 The last argument is a stable key that identifies the record, so several sources can be merged into the same model. It is also the **expected identity**: if the page or the extraction is about a different model/provider than the key, the whole collection is rejected and nothing is saved.
@@ -73,9 +78,11 @@ Each run prints the source URL, the fields that passed (`OK`), the ones dropped 
 
 Prefer official sources: fal.ai's `llms.txt` per model, the creators' API docs for limits, and official status pages for uptime.
 
+**Discontinuation is never inferred by the LLM.** A wrong "discontinued" would remove a model from the ranking, so `discontinued` is only set by the command above, and only when the fetched page contains a sentence whose subject is the endpoint/model/product itself ("This model is no longer supported", "This endpoint is deprecated", or "...will be shut down on <date>" with a date already passed; a future date is just an announcement). A sentence about something else on the page (e.g. "@fal-ai/serverless-client is deprecated", a client library) does not count — that exact sentence sits on an active model's page.
+
 ### Scheduled collection
 
-`scripts/run_collection.py` walks `targets.json` — a curated list of **fixed URLs**, never search — and re-collects each one with `facts_only=True` (prices, limits, multi-shot, uptime; `quality_notes`/`notes` are left untouched, or they'd grow with a slightly reworded duplicate every run). Each target is isolated: one bad target doesn't stop the others. The script exits non-zero only if a whole target was rejected (wrong page/model), not for an individual dropped field, which is normal.
+`scripts/run_collection.py` walks `targets.json` — a curated list of **fixed URLs**, never search — and re-collects each one with `facts_only=True` (prices, limits, multi-shot, uptime; `quality_notes`/`notes` are left untouched, or they'd grow with a slightly reworded duplicate every run). Each target is isolated: one bad target doesn't stop the others. The LLM is not deterministic (on some calls it returns no price, or names a model without its brand), so a target is **retried up to 3 times** when a field that was verified before does not come back, or when the whole target is rejected; it stops as soon as every previously verified field is confirmed and never chases fields that were never verified. The script exits non-zero only if a whole target was rejected (wrong page/model), not for an individual dropped field, which is normal.
 
 ```bash
 python scripts/run_collection.py            # local run against whatever DATABASE_URL points to
@@ -84,7 +91,7 @@ python scripts/run_collection.py            # local run against whatever DATABAS
 `.github/workflows/collect.yml` runs this daily at 09:00 UTC (`workflow_dispatch` also allows a manual run from the Actions tab), then rebuilds the frontend, regenerates the static snapshot and publishes it to GitHub Pages. A target that fails entirely does **not** block publishing: the collection step is `continue-on-error`, the site is still refreshed with what the database holds (a failed target just keeps its previous values), and a final step turns the run red so GitHub emails the alert. The run page carries a one-line-per-target summary (`$GITHUB_STEP_SUMMARY`), and the log stays short because the full report only prints on manual runs. It needs three repository secrets — `DATABASE_URL` (pointing at a reachable Postgres, e.g. Supabase's session-pooler URL), `DEEP_SEEK_API_KEY`, `FIRECRAWL_API_KEY` — and, once, the repo's **Settings > Pages > Source** set to "GitHub Actions".
 
 Some sources are deliberately left out of `targets.json` (see the `_excluded_*_comment` keys in the file for why): a wrong review search result would corrupt a record with nobody watching, and some official pages don't carry a stable, comparable number even when the text "verifies" cleanly:
-- **Sora 2**: OpenAI discontinued the product; needs a human decision (mark discontinued / remove from ranking), not an automatic price refresh.
+- **Sora 2**: discontinued — fal.ai shut its endpoint down on 2026-09-24 (its page says "This endpoint will be shut down on September 24, 2026" and "This model is no longer supported"). It is flagged `discontinued` (with that quote and the page as evidence), kept out of the ranking and shown under "Discontinued (not ranked)" in the comparison table; its last known values stay as history and it is not collected.
 - **Luma Ray 3.2**: the only fal.ai page found is for Ray 2, a different version — correctly rejected every time, so left out to avoid noise until a real Ray 3.2 source turns up.
 - **MiniMax Hailuo 2.3**: its fal.ai page prices per *video* ($0.49), never per second, so no field can ever be verified from it; it only added a chance of a red run.
 - **Together AI's status page**: it lists uptime per hosted *model*, not a platform component. Our "use the lowest one" rule then quotes a different model's number every run — technically verified (real quote, real number) but not a stable reliability signal. Needs a rule that reads *all* the per-model rows and averages them in code, not an LLM picking one.
@@ -153,5 +160,5 @@ What this does **not** guarantee: that the page itself is correct or current (pr
 - **Provider overhead/latency** are not collected.
 - **Price history starts on 2026-09-22**, when the `field_history` table was introduced. Every value change `store.py` accepts from then on (a brand-new record's first known value, or a later verified update) gets an append-only row (`entity_type`, `entity_key`, `field`, `old_value`, `new_value`, `source_url`, `changed_at`); it is exposed at `/api/history` and charted in the "Price history" tab. The 8 rows that already existed in Postgres at that date got a one-time seed row each, copied from their (already-verified) `field_evidence` entry, so the chart has a real starting point instead of being empty — there is no earlier price data to backfill beyond that.
 - **Price basis is 720p, enforced mostly by an instruction to the LLM.** On Seedance 2.5's page (one price per resolution) the price used to flip between runs: in a read-only test of 10 extractions with the old schema, 4 returned the 480p price, 3 the 720p price and 3 nothing; with the 720p instruction all 10 returned the 720p price. The code guard only catches a quote that mentions *no* 720p at all. Models whose page has no 720p price, or prices per video (MiniMax), get no price.
-- **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically.
+- **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically. The `models.discontinued` column, for instance, must be added to a database created before it existed: `ALTER TABLE models ADD COLUMN discontinued BOOLEAN;` (already applied on Supabase; a fresh database gets it from `create_all`).
 - **Not deployed as a live service**: the API and Postgres run locally (or wherever Docker Compose is pointed); only the read-only static snapshot is published, on a schedule (see Scheduled collection).

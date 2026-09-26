@@ -16,7 +16,7 @@ function mark(m, field, text) {
   return text === '—' || m.evidence[field] ? text : <>{text}<span className="muted" title="Sem citação verificada da fonte"> *</span></>
 }
 
-export default function ComparisonTableView({ ranked, onSelectModel }) {
+export default function ComparisonTableView({ ranked, discontinued = [], onSelectModel }) {
   return (
     <section>
       <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Comparison table</h2>
@@ -47,6 +47,33 @@ export default function ComparisonTableView({ ranked, onSelectModel }) {
           </tbody>
         </table>
       </Card>
+
+      {discontinued.length > 0 && (
+        <>
+          <h3 style={{ fontSize: 16, fontWeight: 600, margin: '28px 0 6px' }}>Discontinued (not ranked)</h3>
+          <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+            Últimos valores conhecidos, mantidos só como histórico. Não entram no ranking nem na comparação.
+          </p>
+          <Card style={{ padding: 6, overflowX: 'auto', opacity: 0.75 }}>
+            <table style={{ minWidth: 760 }}>
+              <tbody>
+                {discontinued.map((m) => (
+                  <tr key={m.id} style={{ cursor: 'pointer' }} onClick={() => onSelectModel(m.id)}>
+                    <td style={{ fontWeight: 600 }}>{m.name} <span className="chip" style={{ background: 'rgba(248,113,113,.15)', color: '#f87171', marginLeft: 6 }}>Discontinued</span></td>
+                    <td className="muted">{m.provider}</td>
+                    <td className="num">{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}`)}</td>
+                    <td className="num">{fmt(m.maxReferenceImages, (v) => v)}</td>
+                    <td className="num">{fmt(m.promptMaxChars, (v) => v.toLocaleString())}</td>
+                    <td><MultiShotTag yes={m.multiShot} /></td>
+                    <td className="num">{fmt(m.qualityScore, (v) => `${v.toFixed(1)}/10`)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
+      )}
+
       <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
         "—" = a plataforma não publica esse dado (ex.: limite de prompt do Kling e Seedance) ou ainda não há fonte confiável. Não estimamos valores. * = valor ainda sem citação verificada da fonte (clique no modelo para ver a fonte dos verificados).
       </p>
