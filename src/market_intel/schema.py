@@ -116,6 +116,8 @@ class ModelComparisonOut(ModelComparison):
     model_key: str
     # Só existe na saída: quem marca é store.set_discontinued, nunca a extração.
     discontinued: Optional[bool] = None
+    # Só saída: quem preenche é store.set_promo. Fora do ranking, com selo na tela.
+    promo_price_per_second_usd: Optional[float] = None
     # Prova de cada campo verificado; campo ausente aqui = sem evidência.
     evidence: dict[str, EvidenceOut] = Field(default_factory=dict)
 

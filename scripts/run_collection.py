@@ -25,6 +25,7 @@ import sys
 import traceback
 from pathlib import Path
 
+from market_intel.catalog import report_path, tracked_price_alerts
 from market_intel.run_pipeline import run_pipeline, run_status_pipeline
 from market_intel.verify import ExtractionRejected
 
@@ -33,7 +34,10 @@ DEFAULT_TARGETS_PATH = Path(__file__).resolve().parent.parent / "targets.json"
 OK, NOTHING_NEW, FAILED = "ok", "no verified fields", "FAILED"
 
 
-def _run_target(label: str, action) -> tuple[str, str]:
+ALERTS: list[str] = []
+
+
+def _run_target(label: str, action, key: str = "") -> tuple[str, str]:
     """Runs one target, prints its outcome, returns (status, detail)."""
     print(f"\n=== {label} ===")
     try:
@@ -46,6 +50,7 @@ def _run_target(label: str, action) -> tuple[str, str]:
         traceback.print_exc()
         return FAILED, f"error: {type(error).__name__}: {error}"
 
+    ALERTS.extend(tracked_price_alerts(key, verified))
     confirmed = ", ".join(verified.evidence) or "-"
     dropped = "; ".join(f"{field} ({reason})" for field, reason in verified.rejected.items())
     detail = f"confirmed: {confirmed}" + (f" | dropped: {dropped}" if dropped else "")
@@ -68,12 +73,16 @@ def _write_summary(results: list[tuple[str, str, str]]) -> None:
 
 def main(targets_path: Path = DEFAULT_TARGETS_PATH) -> int:
     targets = json.loads(targets_path.read_text(encoding="utf-8"))
+    ALERTS.clear()
+    # A fresh report per job; scripts/scan_catalog.py appends its section to it later.
+    report_path().unlink(missing_ok=True)
 
     results: list[tuple[str, str, str]] = []
     for target in targets.get("models", []):
         status, detail = _run_target(
             f"model {target['model_key']}",
             lambda t=target: run_pipeline(t["url"], t["model_key"], facts_only=True),
+            key=target["model_key"],
         )
         results.append((target["model_key"], status, detail))
 
@@ -86,7 +95,13 @@ def main(targets_path: Path = DEFAULT_TARGETS_PATH) -> int:
 
     _write_summary(results)
 
-    failed = [label for label, status, _ in results if status == FAILED]
+    if ALERTS:
+        print("\n=== alerts (tracked models) ===")
+        print("\n".join(f"  {line}" for line in ALERTS))
+        with report_path().open("a", encoding="utf-8") as handle:
+            handle.write("## Tracked models: prices\n\n" + "\n".join(f"- {line}" for line in ALERTS) + "\n\n")
+
+    failed =[label for label, status, _ in results if status == FAILED]
     print(f"\n{len(results) - len(failed)}/{len(results)} targets ran without a full rejection.")
     if failed:
         print(f"Targets that failed entirely (nothing was saved for them): {', '.join(failed)}")

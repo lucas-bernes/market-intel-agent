@@ -32,6 +32,9 @@ FireCrawl only *collects* the raw page text. DeepSeek *extracts* fields from it.
 | `src/market_intel/db.py` | SQLAlchemy models (`models`, `providers`, `field_evidence`) and engine |
 | `src/market_intel/api.py` | FastAPI app |
 | `src/market_intel/run_pipeline.py` | CLI entry point for the collection pipeline |
+| `src/market_intel/catalog.py` | Catalog watcher: readers for 5 platforms, diff against the previous scan, events and report |
+| `src/market_intel/promo.py` | Promotional-price wording (shared by the catalog watcher and the verifier) |
+| `scripts/scan_catalog.py` | Daily catalog scan (new / gone / repriced / promotional endpoints) |
 | `scripts/export_static.py` | Builds a single self-contained HTML snapshot of the dashboard |
 | `frontend/` | React (Vite) dashboard |
 | `tests/` | pytest suite (SQLite, no network or API keys needed) |
@@ -97,6 +100,31 @@ Some sources are deliberately left out of `targets.json` (see the `_excluded_*_c
 - **Together AI's status page**: it lists uptime per hosted *model*, not a platform component. Our "use the lowest one" rule then quotes a different model's number every run — technically verified (real quote, real number) but not a stable reliability signal. Needs a rule that reads *all* the per-model rows and averages them in code, not an LLM picking one.
 - **Replicate's status page**: no uptime percentage at all, only incident days.
 
+### Catalog and price watch
+
+`targets.json` is curated by hand, so a model that appears on an aggregator is never seen by the collection above. `scripts/scan_catalog.py` (run daily by the same workflow) fills that gap. It reads the **public** catalogs of five platforms, needs no LLM, no Firecrawl and no API key, and compares each one with the previous scan:
+
+| Platform | Source | What it gives |
+|---|---|---|
+| fal.ai (reference) | public JSON API `fal.ai/api/models` | ~200 image-to-video endpoints: date, family, price text, deprecated flag |
+| Runware | model objects embedded in `runware.ai/models` | status, **shutdown date**, per-resolution price |
+| PiAPI | price tables embedded in `piapi.ai/pricing` | per-second prices per Kling/Luma version (STD, PRO, audio) |
+| AIMLAPI | public JSON API `api.aimlapi.com/models` | ~220 video-generation models with release dates (no prices) |
+| Replicate | public `replicate.com/collections/image-to-video` | ~50 model names (no prices in the listing) |
+
+Left out: Together AI and WaveSpeed (their APIs answer 401 without a key) and Segmind/Novita (the price is buried in schema text, too fragile to parse). Note the platforms disagree with each other, which is the point: Sora 2 is shut down on fal.ai and marked `deprecated` on Runware (both on 2026-09-24).
+
+Each difference becomes an event: **new** endpoint, **gone**, **deprecated**, **price changed**, **promo**, **returned**. Safeguards, so a hiccup never looks like news: the first scan of a platform is a baseline (nothing is reported, except promotions, which are time-limited); an endpoint is "gone" only after 3 consecutive scans without it; a scan with fewer than half the known endpoints is rejected instead of diffed; a platform that fails to parse is reported without stopping the others. Nothing is ever added to the ranking automatically: each new endpoint needs a decision (model key, tier, region variant, 720p basis).
+
+**Notification.** When there is news, the workflow opens **one GitHub issue per run**, assigned to the repository owner; GitHub emails assignees according to their notification settings, so the address that should receive it must be the one configured in *GitHub > Settings > Notifications*. Events are marked as notified only after the issue was created; if that step fails, the next run reports them again. A source that stops parsing does not open an issue (it turns the run red, which GitHub already emails). The same report also lists alerts for the **tracked models**: a list-price move of 10% or more, and any promotional price.
+
+**Promotions.** A price whose quote (or the text right around it) says "promotional", "limited time", "50% off", "until <date>"... is treated as promotional: it does not replace the list price and never enters the ranking; it is stored as `promo_price_per_second_usd` and shown with an orange **PROMO** badge (evidence and history included), and it disappears when a normal price comes back. "Volume discount" is deliberately not a promotion. A promo text naming a month already over ("20% off for February 2026") is flagged as possibly expired.
+
+```bash
+python scripts/scan_catalog.py            # scan every platform, write catalog_report.md
+python scripts/scan_catalog.py --digest   # fal.ai endpoints we do not track, by family
+```
+
 ### Sharing a snapshot
 
 To show the dashboard to someone without running anything, build a single HTML file with the current data embedded:
@@ -147,6 +175,11 @@ What this does **not** guarantee: that the page itself is correct or current (pr
 
 ## Known limitations
 
+- **The catalog sources are public but unofficial.** fal.ai's `/api/models`, Runware's and PiAPI's embedded page data and Replicate's collection page are not documented interfaces and can change without notice. The readers reject a scan that looks broken (too few items) and report the failing platform, but a subtle change (for example a renamed field) can go unnoticed until it shows up as missing prices.
+- **Only fal.ai is compared model by model.** The `models` table holds one price per model, the fal.ai one. The other four platforms are watched for news and promotions, but their prices are not stored per model, so "Kling 3.0 on PiAPI vs on fal.ai" is not a dashboard view yet (PiAPI lists Kling 3.0 at $0.10/s STD and $0.15/s PRO; fal.ai's Kling 3.0 Pro is $0.112/s, with different audio/resolution assumptions, so they are not directly comparable).
+- **Regional endpoints** (for example `bytedance/seedance-2.5/us/image-to-video`) are separate catalog entries and may be priced differently from the ones we track.
+- **Promotion detection is keyword-based** and has only been observed on catalog texts, never yet on a tracked model's own page. It is covered by tests with the real wording seen on 2026-09-26, but an unusual phrasing would be missed.
+
 - **Search can hit the wrong target.** Automatic search occasionally returns a page about a different model or provider (e.g. Seedance 1.0 instead of 2.0). The identity check rejects such collections, but free-text notes are not fact-checked, so they still need a human read.
 - **Most existing values are unverified.** Only values collected through the verified pipeline carry evidence; earlier data shows as "not verified" (`*`) until it is re-collected.
 - **Some fields are empty by nature.**
@@ -160,5 +193,5 @@ What this does **not** guarantee: that the page itself is correct or current (pr
 - **Provider overhead/latency** are not collected.
 - **Price history starts on 2026-09-22**, when the `field_history` table was introduced. Every value change `store.py` accepts from then on (a brand-new record's first known value, or a later verified update) gets an append-only row (`entity_type`, `entity_key`, `field`, `old_value`, `new_value`, `source_url`, `changed_at`); it is exposed at `/api/history` and charted in the "Price history" tab. The 8 rows that already existed in Postgres at that date got a one-time seed row each, copied from their (already-verified) `field_evidence` entry, so the chart has a real starting point instead of being empty — there is no earlier price data to backfill beyond that.
 - **Price basis is 720p, enforced mostly by an instruction to the LLM.** On Seedance 2.5's page (one price per resolution) the price used to flip between runs: in a read-only test of 10 extractions with the old schema, 4 returned the 480p price, 3 the 720p price and 3 nothing; with the 720p instruction all 10 returned the 720p price. The code guard only catches a quote that mentions *no* 720p at all. Models whose page has no 720p price, or prices per video (MiniMax), get no price.
-- **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically. The `models.discontinued` column, for instance, must be added to a database created before it existed: `ALTER TABLE models ADD COLUMN discontinued BOOLEAN;` (already applied on Supabase; a fresh database gets it from `create_all`).
+- **No migrations tool**: adding a column to an existing table needs a manual `ALTER TABLE` (Alembic would be the next step). New tables are created automatically. The `models.discontinued` and `models.promo_price_per_second_usd` columns, for instance, must be added to a database created before they existed: `ALTER TABLE models ADD COLUMN discontinued BOOLEAN;` and `ALTER TABLE models ADD COLUMN promo_price_per_second_usd FLOAT;` (already applied on Supabase; a fresh database gets them from `create_all`). On Supabase, new tables must also get `ENABLE ROW LEVEL SECURITY`, which `create_all` does not do (the catalog tables were created with it by a migration).
 - **Not deployed as a live service**: the API and Postgres run locally (or wherever Docker Compose is pointed); only the read-only static snapshot is published, on a schedule (see Scheduled collection).

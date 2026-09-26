@@ -69,6 +69,9 @@ class ModelRecord(Base):
     # Descontinuado na plataforma comparada (ex: endpoint desligado). Fica
     # fora do ranking; só é marcado por store.set_discontinued, com evidência.
     discontinued: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    # Preço promocional observado (selo "PROMO" na tela). Nunca entra no ranking:
+    # o ranking usa price_per_second_usd, o preço de tabela.
+    promo_price_per_second_usd: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
 
 class ProviderRecord(Base):
@@ -118,6 +121,42 @@ class FieldHistoryRecord(Base):
     new_value: Mapped[str] = mapped_column(String)
     source_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     changed_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class CatalogEntryRecord(Base):
+    # Um endpoint/modelo visto no catálogo de uma plataforma (fal.ai, Runware...).
+    # É o "estado anterior" que a próxima varredura compara pra achar novidades.
+    __tablename__ = "catalog_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    platform: Mapped[str] = mapped_column(String)
+    endpoint_id: Mapped[str] = mapped_column(String)
+    title: Mapped[str] = mapped_column(String)
+    family: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    published_at: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    price_text: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String)  # "active" | "deprecated" | "gone"
+    missing_scans: Mapped[int] = mapped_column(Integer)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime)
+
+    __table_args__ = (UniqueConstraint("platform", "endpoint_id"),)
+
+
+class CatalogEventRecord(Base):
+    # Só INSERT: cada novidade detectada (new / gone / returned / deprecated /
+    # price_changed / promo). notified_at NULL = ainda não avisada (issue do GitHub).
+    __tablename__ = "catalog_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    platform: Mapped[str] = mapped_column(String)
+    endpoint_id: Mapped[str] = mapped_column(String)
+    title: Mapped[str] = mapped_column(String)
+    kind: Mapped[str] = mapped_column(String)
+    detail: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    detected_at: Mapped[datetime] = mapped_column(DateTime)
+    notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
 # Cria as tabelas que ainda não existirem (não faz nada com as que já existem).

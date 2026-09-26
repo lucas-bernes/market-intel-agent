@@ -14,6 +14,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
+from .promo import find_promo
 from .schema import ModelComparison, ModelExtraction, ProviderComparison, ProviderExtraction
 
 
@@ -26,6 +27,12 @@ class Verified:
     comparison: object  # ModelComparison ou ProviderComparison, só com campos aprovados
     evidence: dict[str, str] = field(default_factory=dict)  # campo -> citação aprovada
     rejected: dict[str, str] = field(default_factory=dict)  # campo -> motivo
+    # (preço, citação) quando o preço extraído é PROMOCIONAL: ele não vira o preço
+    # de tabela (que o ranking usa), só o selo "PROMO" — ver verify_model_extraction.
+    promo: Optional[tuple] = None
+    # Mudanças em campos protegidos que o store aplicou (campo, antigo, novo);
+    # preenchido pelo pipeline depois de salvar, usado pelos alertas de variação.
+    changes: list = field(default_factory=list)
 
 
 # Faixas plausíveis: valor fora disso quase certamente é erro de leitura
@@ -242,7 +249,28 @@ def verify_model_extraction(extraction: ModelExtraction, raw_text: str, expected
         raise ExtractionRejected(f"'{expected_name}' não aparece no texto coletado")
 
     data, evidence, rejected = _verify_fields(extraction, raw_text, MODEL_FIELDS)
-    return Verified(ModelComparison(**data), evidence, rejected)
+
+    # Preço promocional não é preço de tabela: se a citação (ou o texto logo em
+    # volta) fala de promoção, o valor sai de price_per_second_usd — que o ranking
+    # usa — e vai só para o selo. O preço de tabela guardado antes fica intacto.
+    promo = None
+    price_quote = evidence.get("price_per_second_usd")
+    if price_quote:
+        phrase = promo_near(raw_text, price_quote)
+        if phrase:
+            promo = (data["price_per_second_usd"], f'{price_quote} [promo cue: "{phrase}"]')
+            evidence.pop("price_per_second_usd")
+            data["price_per_second_usd"] = None
+    return Verified(ModelComparison(**data), evidence, rejected, promo=promo)
+
+
+def promo_near(raw_text: str, quote: str, window: int = 350) -> Optional[str]:
+    """The promotional phrase within `window` characters around the quote in the page, if any."""
+    raw_norm, quote_norm = normalize(raw_text), normalize(quote)
+    start = raw_norm.find(quote_norm)
+    if start < 0:
+        return None
+    return find_promo(raw_norm[max(0, start - window): start + len(quote_norm) + window])
 
 
 def verify_provider_extraction(extraction: ProviderExtraction, raw_text: str, expected_name: str) -> Verified:

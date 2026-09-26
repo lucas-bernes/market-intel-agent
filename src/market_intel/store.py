@@ -235,6 +235,50 @@ def set_discontinued(
         return True
 
 
+def set_promo(
+    model_key: str, price: Optional[float], quote: Optional[str] = None, source_url: Optional[str] = None,
+) -> bool:
+    """Sets (or, with price=None, clears) the promotional price shown with a "PROMO" badge.
+
+    It never touches price_per_second_usd: the ranking keeps using the list price.
+    Returns True if the promotional price changed.
+    """
+    key = _sanitize_key(model_key)
+    field_name = "promo_price_per_second_usd"
+    with SessionLocal() as session:
+        record = session.get(ModelRecord, key)
+        if record is None:
+            raise KeyError(f"unknown model: {key}")
+        old = record.promo_price_per_second_usd
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        evidence = (
+            session.query(FieldEvidenceRecord)
+            .filter_by(entity_type="model", entity_key=key, field=field_name)
+            .one_or_none()
+        )
+        if price is None:
+            if evidence is not None:
+                session.delete(evidence)
+        else:
+            if evidence is None:
+                evidence = FieldEvidenceRecord(entity_type="model", entity_key=key, field=field_name)
+                session.add(evidence)
+            evidence.value, evidence.quote, evidence.source_url, evidence.collected_at = (
+                str(price), quote or "", source_url, now,
+            )
+
+        changed = old != price
+        if changed:
+            record.promo_price_per_second_usd = price
+            session.add(FieldHistoryRecord(
+                entity_type="model", entity_key=key, field=field_name,
+                old_value=None if old is None else str(old), new_value="None" if price is None else str(price),
+                source_url=source_url, changed_at=now,
+            ))
+        session.commit()
+        return changed
+
+
 def load_evidence() -> dict[tuple[str, str], dict[str, dict]]:
     # {(entity_type, entity_key): {campo: {quote, source_url, collected_at}}}
     with SessionLocal() as session:

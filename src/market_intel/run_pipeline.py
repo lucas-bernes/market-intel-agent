@@ -2,7 +2,13 @@ import sys
 
 from .sources import fetch_page_text, fetch_raw_text, find_provider_info, find_review_text
 from .extract import extract_model_comparison, extract_provider_comparison, extract_status_uptime
-from .store import load_verified_fields, save_model_comparison, save_provider_comparison, set_discontinued
+from .store import (
+    load_verified_fields,
+    save_model_comparison,
+    save_provider_comparison,
+    set_discontinued,
+    set_promo,
+)
 from .verify import (
     MODEL_FIELDS,
     PROVIDER_FIELDS,
@@ -25,6 +31,8 @@ def _print_summary(verified: Verified, changes: list, source_url: str) -> None:
         print(f"  OK       {field}: \"{quote[:90]}\"")
     for field, reason in verified.rejected.items():
         print(f"  DESCARTADO {field}: {reason}")
+    if verified.promo:
+        print(f"  PROMO    price_per_second_usd: {verified.promo[0]} (preço de tabela e ranking não mudam)")
     for field, old, new in changes:
         label = "REGISTRADO (1º valor)" if old is None else "ATUALIZADO"
         print(f"  {label} {field}: {old} -> {new}")
@@ -51,10 +59,13 @@ def _with_retry(attempt, expected: set) -> Verified:
             last_error = error
             print(f"  tentativa {number}/{MAX_ATTEMPTS} rejeitada: {error}")
             continue
-        score = (len(expected & set(verified.evidence)), len(verified.evidence))
+        # Um preço promocional detectado conta como o campo "preço" confirmado:
+        # a página respondeu, só não é o preço de tabela. Repetir não adiantaria.
+        confirmed = set(verified.evidence) | ({"price_per_second_usd"} if verified.promo else set())
+        score = (len(expected & confirmed), len(confirmed))
         if best is None or score > best[0]:
             best = (score, verified)
-        missing = expected - set(verified.evidence)
+        missing = expected - confirmed
         if not missing:
             break
         print(f"  tentativa {number}/{MAX_ATTEMPTS}: campos verificados antes não vieram: {sorted(missing)}")
@@ -70,6 +81,12 @@ def run_pipeline(url: str, model_key: str, facts_only: bool = False) -> Verified
         lambda: verify_model_extraction(extract_model_comparison(raw_text), raw_text, model_key), expected
     )
     changes = save_model_comparison(verified.comparison, model_key, url, verified.evidence, facts_only=facts_only)
+    # Selo PROMO: liga com preço promocional; desliga quando volta um preço de tabela.
+    if verified.promo:
+        set_promo(model_key, verified.promo[0], verified.promo[1], url)
+    elif "price_per_second_usd" in verified.evidence:
+        set_promo(model_key, None)
+    verified.changes = changes
     _print_summary(verified, changes, url)
     # O relatório completo (com todas as notas de qualidade, ~7 KB) só serve pra
     # quem roda na mão. No modo agendado ele repetia depois de cada alvo e

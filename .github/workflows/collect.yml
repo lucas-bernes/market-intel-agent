@@ -11,6 +11,7 @@ permissions:
   contents: write # to push the generated snapshot to gh-pages
   pages: write
   id-token: write
+  issues: write # the catalog/price watch opens an issue when something changed
 
 jobs:
   collect:
@@ -40,6 +41,42 @@ jobs:
         # email the alert. Before this, one flaky target froze the whole site.
         continue-on-error: true
 
+      # Watches the public catalogs of fal.ai, Runware, PiAPI, AIMLAPI and Replicate
+      # for new / gone / repriced / promotional endpoints. No LLM, no API keys.
+      # Appends its findings to catalog_report.md (the collection step may have
+      # started that file with price alerts for the tracked models).
+      - name: Scan aggregator catalogs
+        id: catalog
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/scan_catalog.py
+        continue-on-error: true
+
+      # One issue per run, only when there is something to say. It is assigned to the
+      # repository owner, and GitHub emails assignees according to their notification
+      # settings (the address must be the one set in GitHub > Settings > Notifications).
+      - name: Open an issue with the changes
+        id: issue
+        if: hashFiles('catalog_report.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create catalog --color BFD4F2 --description "Catalog and price watch" || true
+          gh issue create \
+            --title "Catalog and price watch $(date -u +%F)" \
+            --label catalog \
+            --assignee "${{ github.repository_owner }}" \
+            --body-file catalog_report.md
+        continue-on-error: true
+
+      # Only after the issue exists: otherwise the events stay pending and are
+      # reported again by the next run.
+      - name: Mark the events as notified
+        if: steps.issue.outcome == 'success'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/scan_catalog.py --mark-notified
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -67,9 +104,9 @@ jobs:
       - uses: actions/deploy-pages@v4
         id: deployment
 
-      - name: Fail the run if any collection target failed
-        if: steps.collect.outcome == 'failure'
+      - name: Fail the run if a collection target, a catalog source or the issue step failed
+        if: steps.collect.outcome == 'failure' || steps.catalog.outcome == 'failure' || steps.issue.outcome == 'failure'
         run: |
-          echo "At least one collection target failed entirely (see the run summary and the collection step log)."
-          echo "The site was still published with the data that is in the database."
+          echo "collection: ${{ steps.collect.outcome }} | catalog scan: ${{ steps.catalog.outcome }} | issue: ${{ steps.issue.outcome }}"
+          echo "See the run summary and the step logs. The site was still published with the data in the database."
           exit 1

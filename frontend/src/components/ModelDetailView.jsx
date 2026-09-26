@@ -1,4 +1,5 @@
 import Card from './Card.jsx'
+import PromoBadge from './PromoBadge.jsx'
 import { fmt } from '../lib/scoring.js'
 
 // Mostra de onde veio o número: link pra fonte (com a frase citada no
@@ -78,6 +79,12 @@ export default function ModelDetailView({ ranked, discontinued = [], selectedMod
             <div style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8b9690', marginBottom: 6 }}>{label}</div>
             <div style={{ fontSize: 17, fontWeight: 600 }}>{value}</div>
             {value !== '—' && <SourceTag evidence={model.evidence[field]} />}
+            {field === 'price_per_second_usd' && model.promoPricePerSecond != null && (
+              <div style={{ marginTop: 8 }}>
+                <PromoBadge price={model.promoPricePerSecond} quote={model.evidence.promo_price_per_second_usd?.quote} />
+                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>promoção temporária, fora do ranking</div>
+              </div>
+            )}
           </Card>
         ))}
       </div>

@@ -227,3 +227,6 @@ open_vscode.bat
 /export/
 
 /practice_exercises
+
+# Report for the GitHub issue (written by scripts/run_collection.py and scan_catalog.py)
+catalog_report.md

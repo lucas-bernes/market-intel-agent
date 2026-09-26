@@ -1,3 +1,4 @@
+import PromoBadge from './PromoBadge.jsx'
 import { fmt } from '../lib/scoring.js'
 
 function MultiShotChip({ yes }) {
@@ -102,6 +103,7 @@ export default function RankingView({ ranked, discontinuedCount = 0, onSelectMod
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 <span className="chip" style={{ background: 'rgba(34,211,238,.14)', color: '#67e8f9' }}>{fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}/s`)}</span>
+                <PromoBadge price={m.promoPricePerSecond} quote={m.evidence.promo_price_per_second_usd?.quote} />
                 <span className="chip" style={{ background: 'rgba(234,179,8,.14)', color: '#fde047' }}>{fmt(m.promptMaxChars, (v) => `${v.toLocaleString()} chars`)}</span>
                 <MultiShotChip yes={m.multiShot} />
               </div>

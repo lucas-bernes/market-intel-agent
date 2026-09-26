@@ -1,4 +1,5 @@
 import Card from './Card.jsx'
+import PromoBadge from './PromoBadge.jsx'
 import { fmt } from '../lib/scoring.js'
 
 function MultiShotTag({ yes }) {
@@ -37,7 +38,10 @@ export default function ComparisonTableView({ ranked, discontinued = [], onSelec
               <tr key={m.id} style={{ cursor: 'pointer' }} onClick={() => onSelectModel(m.id)}>
                 <td style={{ fontWeight: 600 }}>{m.name}</td>
                 <td className="muted">{m.provider}</td>
-                <td className="num">{mark(m, 'price_per_second_usd', fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}`))}</td>
+                <td className="num">
+                  {mark(m, 'price_per_second_usd', fmt(m.pricePerSecond, (v) => `$${v.toFixed(3)}`))}
+                  <PromoBadge price={m.promoPricePerSecond} quote={m.evidence.promo_price_per_second_usd?.quote} />
+                </td>
                 <td className="num">{mark(m, 'max_reference_images', fmt(m.maxReferenceImages, (v) => v))}</td>
                 <td className="num">{mark(m, 'prompt_max_chars', fmt(m.promptMaxChars, (v) => v.toLocaleString()))}</td>
                 <td><MultiShotTag yes={m.multiShot} /></td>

@@ -11,6 +11,8 @@ function fromApiModel(record) {
     name: record.model_name,
     provider: record.provider,
     pricePerSecond: record.price_per_second_usd,
+    // Preço promocional: só selo na tela; o ranking usa pricePerSecond (tabela).
+    promoPricePerSecond: record.promo_price_per_second_usd ?? null,
     maxReferenceImages: record.max_reference_images,
     promptMaxChars: record.prompt_max_chars,
     multiShot: record.multi_shot_support,
