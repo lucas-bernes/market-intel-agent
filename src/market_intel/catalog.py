@@ -17,6 +17,8 @@ Safeguards, because a silent API hiccup must never look like "everything vanishe
 
 import json
 import re
+import time
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -51,10 +53,22 @@ class CatalogItem:
 
 # ---- helpers ----------------------------------------------------------------
 
-def _http(url: str, limit: int = 8_000_000) -> str:
-    request = urllib.request.Request(url, headers=_UA)
-    with urllib.request.urlopen(request, timeout=45) as response:
-        return response.read(limit).decode("utf-8", errors="replace")
+def _http(url: str, limit: int = 8_000_000, attempts: int = 3) -> str:
+    # Retry only what can pass by itself: timeouts, connection errors, 429 and 5xx.
+    # A 404 or 403 will not improve by waiting, so it fails at once.
+    for attempt in range(1, attempts + 1):
+        try:
+            request = urllib.request.Request(url, headers=_UA)
+            with urllib.request.urlopen(request, timeout=45) as response:
+                return response.read(limit).decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as error:
+            transient = error.code == 429 or error.code >= 500
+            if not transient or attempt == attempts:
+                raise
+        except (urllib.error.URLError, TimeoutError):
+            if attempt == attempts:
+                raise
+        time.sleep(5 * attempt)
 
 
 def _unflight(text: str) -> str:
